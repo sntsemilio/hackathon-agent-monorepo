@@ -1,0 +1,27 @@
+# Hey Banco · Havi backend
+# Python 3.11
+
+# API
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# LangGraph + LiteLLM
+langgraph==0.2.34
+litellm==1.51.3
+anthropic==0.39.0
+
+# Redis (cliente async + RedisVL para RAG)
+redis==5.1.1
+redisvl==0.3.4
+
+# ML / data offline
+scikit-learn==1.5.2
+joblib==1.4.2
+numpy==2.1.2
+pandas==2.2.3
+pyarrow==17.0.0
+
+# Embeddings (sólo para el módulo RAG)
+sentence-transformers==3.1.1
