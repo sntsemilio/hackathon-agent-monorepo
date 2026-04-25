@@ -1,101 +1,58 @@
+"""
+backend/app/agents/teams/tool_ops/agents.py
+============================================
+
+Team de operaciones de herramientas (saldo, transferencias simuladas,
+movimientos). Para el datathon devolvemos respuestas plausibles basadas
+en la ficha; en producción cada tool conectaría con servicios reales.
+
+Diseño: una sola función `tool_ops_node` que internamente despacha por intent.
+"""
 from __future__ import annotations
 
-import re
-from typing import Any
+import logging
+from typing import Any, Dict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from pydantic import BaseModel, Field
-
-from app.skills.code_executor import execute_python_code
+logger = logging.getLogger(__name__)
 
 
-class ToolRequest(BaseModel):
-    code: str = Field(min_length=1)
-    language: str = "python"
+def _format_currency(amount: float) -> str:
+    return f"${amount:,.2f} MXN"
 
 
-class ToolResult(BaseModel):
-    stdout: str = ""
-    stderr: str = ""
-    exit_code: int = 0
+async def tool_ops_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    profile = state.get("profile") or {}
+    intent = (profile.get("intent") or "").lower()
+    user_id = state.get("user_id") or ""
+    ficha = state.get("ficha_cliente") or {}
+
+    if "saldo" in intent:
+        text = (f"Tu saldo disponible en cuenta de débito principal es "
+                f"{_format_currency(_mock_saldo(user_id))}.")
+        return {"draft_response": text,
+                "draft_meta": {"source": "tool_ops", "tool": "consulta_saldo"}}
+
+    if "transferencia" in intent or "pago" in intent:
+        text = ("Para realizar la transferencia necesito que confirmes el monto y "
+                "la cuenta destino. ¿Quieres que la prepare ahora?")
+        return {"draft_response": text,
+                "draft_meta": {"source": "tool_ops", "tool": "transferencia",
+                               "needs_confirmation": True}}
+
+    if "movimiento" in intent or "consulta_movimientos" in intent:
+        text = ("Tus últimos 5 movimientos: 1) Cargo Spotify · 2) Compra OXXO · "
+                "3) Transferencia recibida · 4) Compra restaurante · 5) Pago tarjeta. "
+                "¿Quieres ver el detalle de alguno?")
+        return {"draft_response": text,
+                "draft_meta": {"source": "tool_ops", "tool": "consulta_movimientos"}}
+
+    # Fallback: dejar que research lo tome (no debería pasar por el router)
+    return {"draft_response": "Déjame revisar esa solicitud.",
+            "draft_meta": {"source": "tool_ops", "tool": "fallback"}}
 
 
-def _message_to_text(message: BaseMessage) -> str:
-    content = message.content
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return " ".join(str(item) for item in content)
-    return str(content)
-
-
-def _latest_user_prompt(messages: list[BaseMessage]) -> str:
-    for message in reversed(messages):
-        if isinstance(message, HumanMessage):
-            text = _message_to_text(message).strip()
-            if text:
-                return text
-    if messages:
-        return _message_to_text(messages[-1]).strip()
-    return ""
-
-
-def _extract_python_block(prompt: str) -> str | None:
-    match = re.search(r"```(?:python)?\s*(.*?)```", prompt, re.IGNORECASE | re.DOTALL)
-    if not match:
-        return None
-    extracted = match.group(1).strip()
-    return extracted or None
-
-
-async def prepare_tool_request(state: dict[str, Any]) -> dict[str, Any]:
-    prompt = _latest_user_prompt(state.get("messages", []))
-    tool_request = _extract_python_block(prompt)
-
-    if tool_request is None:
-        expression_match = re.search(
-            r"(?:calculate|compute|evaluate)\s*[:\-]?\s*(.+)",
-            prompt,
-            re.IGNORECASE,
-        )
-        if expression_match:
-            expression = expression_match.group(1).strip()
-            tool_request = f"print({expression})"
-        else:
-            tool_request = "print('No executable Python code found in request.')"
-
-    request_model = ToolRequest(code=tool_request, language="python")
-    return {
-        "request": request_model.model_dump(),
-        "team_iterations": state.get("team_iterations", 0) + 1,
-    }
-
-
-async def execute_tool_request(state: dict[str, Any]) -> dict[str, Any]:
-    request_payload = ToolRequest.model_validate(
-        state.get("request", {"code": "print('No tool request provided.')"})
-    )
-    executed = await execute_python_code(request_payload.code, timeout_seconds=8)
-    result_model = ToolResult(
-        stdout=str(executed.get("stdout", "")),
-        stderr=str(executed.get("stderr", "")),
-        exit_code=int(executed.get("exit_code", -1)),
-    )
-    return {"result": result_model.model_dump()}
-
-
-async def craft_tool_response(state: dict[str, Any]) -> dict[str, Any]:
-    result = ToolResult.model_validate(state.get("result", {}))
-    stdout = result.stdout.strip() or "(empty)"
-    stderr = result.stderr.strip() or "(empty)"
-    exit_code = result.exit_code
-
-    response = (
-        "Tool Ops Result\n"
-        f"Exit Code: {exit_code}\n"
-        "Stdout:\n"
-        f"{stdout}\n"
-        "Stderr:\n"
-        f"{stderr}"
-    )
-    return {"messages": [AIMessage(content=response)]}
+def _mock_saldo(user_id: str) -> float:
+    # Determinista por user_id para que el demo sea estable
+    import hashlib
+    h = hashlib.sha256(user_id.encode()).digest()
+    return round(((h[0] << 8) + h[1]) % 50000 + 1000, 2)

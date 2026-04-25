@@ -21,6 +21,10 @@ dist/
 # ML artifacts
 backend/app/analytics/models/*.pkl
 backend/app/analytics/models/*.joblib
+backend/app/analytics/models/*.csv
+backend/app/analytics/models/*.json
+backend/app/analytics/models/*.parquet
+!backend/app/analytics/models/.gitkeep
 
 # Tool caches
 .pytest_cache/

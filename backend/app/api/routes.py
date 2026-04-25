@@ -1,245 +1,243 @@
+"""
+backend/app/api/routes.py
+=========================
+
+Endpoint principal del agente Havi.
+
+CAMBIO PRINCIPAL (BLOQUEADOR 1 del documento de contexto):
+    - El lifespan inicializa el cliente Redis y lo deja en `app.state.redis`.
+    - El endpoint POST /chat/stream pasa ese cliente como `_redis_client`
+      en el estado inicial del supervisor LangGraph para que `ficha_injector_node`
+      pueda hacer `state.get("_redis_client")` correctamente.
+
+Este archivo asume:
+    - `app.agents.supervisor.build_graph()` devuelve el grafo LangGraph compilado.
+    - `app.core.config.get_settings()` expone REDIS_URL, FICHA_PREFIX, FICHA_TTL_SECONDS.
+    - `app.core.database.create_redis_client(url)` devuelve un cliente redis.asyncio.Redis.
+
+Si tu repo usa otros nombres, ajusta los imports en la parte superior.
+"""
 from __future__ import annotations
 
-import asyncio
 import json
-from typing import Any
-from uuid import uuid4
+import logging
+import uuid
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator, Dict, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
-from langchain_core.messages import BaseMessage, HumanMessage
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sse_starlette.sse import EventSourceResponse
 
-from app.agents.micro_agents.profiler_slm import update_conversational_profile
+from app.agents.supervisor import build_graph
 from app.core.config import get_settings
-from app.core.database import get_conversational_profile, set_conversational_profile
-from app.core.rate_limit import enforce_budget_limit, limiter
+from app.core.database import create_redis_client
 
-router = APIRouter(tags=["chat"])
-settings = get_settings()
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Lifespan: inicializa Redis y compila el grafo una sola vez
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """
+    Lifespan handler: arranca el cliente Redis y compila el supervisor.
+
+    Deja en `app.state`:
+        - app.state.redis        -> redis.asyncio.Redis client
+        - app.state.graph        -> grafo LangGraph compilado
+        - app.state.settings     -> Settings (env vars)
+    """
+    settings = get_settings()
+    app.state.settings = settings
+
+    redis_client = await create_redis_client(settings.REDIS_URL)
+    app.state.redis = redis_client
+    logger.info("Redis client initialized at %s", settings.REDIS_URL)
+
+    app.state.graph = build_graph()
+    logger.info("Supervisor graph compiled and ready")
+
+    try:
+        yield
+    finally:
+        try:
+            await redis_client.aclose()
+        except Exception:
+            logger.exception("Error closing Redis client")
+        logger.info("Lifespan shutdown complete")
+
+
+# ---------------------------------------------------------------------------
+# Router
+# ---------------------------------------------------------------------------
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 class ChatStreamRequest(BaseModel):
-    message: str = Field(min_length=1)
-    thread_id: str | None = None
-    user_id: str | None = Field(default=None, min_length=1)
-    base64_images: list[str] | None = None
+    """Payload de POST /chat/stream."""
+
+    user_id: str = Field(..., description="ID del usuario en Hey Banco (p.ej. USR-00001)")
+    message: str = Field(..., description="Mensaje del usuario")
+    session_id: Optional[str] = Field(
+        default=None,
+        description="Identificador de sesión conversacional. Si no viene, se genera uno.",
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Metadatos opcionales (canal, device, etc.)",
+    )
 
 
-def _message_to_text(message: Any) -> str:
-    if isinstance(message, BaseMessage):
-        content = message.content
-    elif isinstance(message, dict):
-        content = message.get("content", "")
-    else:
-        content = message
+def _build_initial_state(
+    payload: ChatStreamRequest,
+    redis_client: Any,
+    settings: Any,
+) -> Dict[str, Any]:
+    """
+    Construye el dict de input al supervisor LangGraph.
 
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return " ".join(str(item) for item in content)
-    return str(content)
+    Inyecta el cliente Redis bajo la clave `_redis_client` para que
+    `ficha_injector_node` pueda recuperar la ficha del usuario.
+    El prefijo `_` indica que es un campo de runtime (no se persiste).
+    """
+    session_id = payload.session_id or f"sess-{uuid.uuid4().hex[:12]}"
+    return {
+        # Inputs del usuario
+        "user_id": payload.user_id,
+        "session_id": session_id,
+        "input_text": payload.message,
+        "metadata": payload.metadata or {},
+
+        # Personalización (FichaInjector lo llenará)
+        "ficha_cliente": None,
+
+        # Runtime: cliente Redis y settings (no se persisten en checkpoints)
+        "_redis_client": redis_client,
+        "_ficha_prefix": settings.FICHA_PREFIX,
+        "_ficha_ttl_seconds": settings.FICHA_TTL_SECONDS,
+
+        # Buffers que llenan los demás nodos
+        "messages": [],
+        "guardrail": None,
+        "profile": None,
+        "research_context": None,
+        "tool_results": None,
+        "draft_response": None,
+        "final_response": None,
+    }
 
 
-def _extract_final_response(output_state: dict[str, Any], fallback: str = "") -> str:
-    final_response = output_state.get("final_response")
-    if isinstance(final_response, str) and final_response.strip():
-        return final_response
+async def _stream_graph(
+    graph: Any,
+    initial_state: Dict[str, Any],
+) -> AsyncIterator[bytes]:
+    """
+    Itera el grafo en modo stream y emite eventos SSE.
 
-    messages = output_state.get("messages", [])
-    if isinstance(messages, list):
-        for message in reversed(messages):
-            text = _message_to_text(message).strip()
-            if text:
-                return text
-    return fallback
-
-
-def _to_json_safe(value: Any) -> Any:
-    if isinstance(value, BaseMessage):
-        return {
-            "type": value.type,
-            "content": _message_to_text(value),
+    Cada evento se serializa como `data: <json>\\n\\n`. El cliente puede
+    distinguir tipos por la clave `event` dentro del payload.
+    """
+    config = {
+        "configurable": {
+            "thread_id": initial_state["session_id"],
+            "user_id": initial_state["user_id"],
         }
-    if isinstance(value, dict):
-        return {str(key): _to_json_safe(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_to_json_safe(item) for item in value]
-    if isinstance(value, tuple):
-        return [_to_json_safe(item) for item in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return str(value)
-
-
-def _estimate_tokens(text: str) -> int:
-    if not text:
-        return 0
-    # Lightweight approximation to monitor budget trends in the admin panel.
-    return max(1, len(text) // 4)
-
-
-async def _persist_profile_after_stream(
-    user_id: str,
-    existing_profile: dict[str, Any],
-    stream_snapshot: dict[str, Any],
-) -> None:
-    """Persist profile updates after SSE stream completion."""
-
-    if stream_snapshot.get("stream_error"):
-        return
-
-    candidate_messages = [
-        str(stream_snapshot.get("user_message", "")).strip(),
-        str(stream_snapshot.get("assistant_message", "")).strip(),
-    ]
-    new_messages = [message for message in candidate_messages if message]
-    if not new_messages:
-        return
+    }
 
     try:
-        updated_profile = await update_conversational_profile(
-            current_profile=existing_profile,
-            new_messages=new_messages,
-        )
-        await set_conversational_profile(user_id=user_id, profile_data=updated_profile)
-    except (OSError, RuntimeError, TypeError, ValueError):
-        # Never fail the request lifecycle because of post-stream profile persistence.
-        return
+        async for chunk in graph.astream(initial_state, config=config, stream_mode="updates"):
+            for node_name, node_state in chunk.items():
+                event = {
+                    "event": "node_update",
+                    "node": node_name,
+                    "data": _safe_serializable(node_state),
+                }
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n".encode("utf-8")
+
+        yield b"data: {\"event\": \"done\"}\n\n"
+    except Exception as exc:
+        logger.exception("Graph streaming failed")
+        err = {"event": "error", "message": str(exc)}
+        yield f"data: {json.dumps(err, ensure_ascii=False)}\n\n".encode("utf-8")
 
 
-@router.post("/chat/stream")
-@limiter.limit(settings.chat_rate_limit)
-async def chat_stream(
-    request: Request,
-    payload: ChatStreamRequest,
-    background_tasks: BackgroundTasks,
-) -> EventSourceResponse:
-    message = payload.message.strip()
-    if not message:
-        raise HTTPException(status_code=400, detail="message must not be blank")
+def _safe_serializable(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Limpia campos que no deben viajar al cliente:
+        - cualquier clave que empiece con `_` (runtime, p.ej. _redis_client)
+        - objetos no serializables a JSON
+    """
+    if not isinstance(state, dict):
+        return {"_": str(state)}
 
-    thread_id = payload.thread_id or str(uuid4())
-    user_id = payload.user_id.strip() if payload.user_id else thread_id
-    identity = f"{request.client.host if request.client else 'unknown'}:{thread_id}"
-    await enforce_budget_limit(request, identity)
-
-    analytics_engine = getattr(request.app.state, "analytics_engine", None)
-    analytics_task = (
-        analytics_engine.get_user_insights(user_id)
-        if analytics_engine is not None
-        else asyncio.sleep(0, result={})
-    )
-
-    analytics_result, conversational_result = await asyncio.gather(
-        analytics_task,
-        get_conversational_profile(user_id),
-        return_exceptions=True,
-    )
-
-    analytics_insights = analytics_result if isinstance(analytics_result, dict) else {}
-    conversational_profile = (
-        conversational_result if isinstance(conversational_result, dict) else {}
-    )
-    user_persona = {
-        "user_id": user_id,
-        "analytics_insights": analytics_insights,
-        "conversational_profile": conversational_profile,
-    }
-
-    initial_state = {
-        "messages": [HumanMessage(content=message)],
-        "thread_id": thread_id,
-        "global_iterations": 0,
-        "active_team": "guardrail",
-        "user_persona": user_persona,
-        "base64_images": payload.base64_images or [],
-        "delegation_trace": [],
-    }
-    config = {"configurable": {"thread_id": thread_id}}
-    stream_snapshot: dict[str, Any] = {
-        "user_message": message,
-        "assistant_message": "",
-        "stream_error": False,
-    }
-
-    async def event_generator():
-        final_response = ""
-        latest_output: dict[str, Any] = {}
-
+    cleaned: Dict[str, Any] = {}
+    for k, v in state.items():
+        if k.startswith("_"):
+            continue
         try:
-            async for output in request.app.state.graph.astream(
-                initial_state,
-                config=config,
-            ):
-                if isinstance(output, dict):
-                    latest_output = output
-                    final_response = _extract_final_response(output, fallback=final_response)
+            json.dumps(v, ensure_ascii=False, default=str)
+            cleaned[k] = v
+        except TypeError:
+            cleaned[k] = str(v)
+    return cleaned
 
-                payload_data = {
-                    "event": "state_update",
-                    "name": "graph.astream",
-                    "data": _to_json_safe(output),
-                }
-                yield {
-                    "event": "trace",
-                    "data": json.dumps(payload_data, ensure_ascii=True),
-                }
 
-        except (OSError, RuntimeError, TypeError, ValueError) as exc:
-            stream_snapshot["stream_error"] = True
-            yield {
-                "event": "error",
-                "data": json.dumps(
-                    {
-                        "thread_id": thread_id,
-                        "error": str(exc),
-                    },
-                    ensure_ascii=True,
-                ),
-            }
-            return
+# ---------------------------------------------------------------------------
+# Endpoint principal
+# ---------------------------------------------------------------------------
+@router.post("/stream")
+async def chat_stream(payload: ChatStreamRequest, request: Request) -> StreamingResponse:
+    """
+    Endpoint conversacional con SSE. Personalizado vía ficha_cliente en Redis.
 
-        if not final_response:
-            final_response = "Graph execution completed without a captured final response."
-        stream_snapshot["assistant_message"] = final_response
+    Flujo:
+        FichaInjector -> Guardrail -> Profiler -> Supervisor -> (Research|ToolOps) -> Summarizer
+    """
+    redis_client = getattr(request.app.state, "redis", None)
+    graph = getattr(request.app.state, "graph", None)
+    settings = getattr(request.app.state, "settings", None)
 
-        runtime_metrics = request.app.state.runtime_metrics
-        runtime_metrics["requests_total"] += 1
-        runtime_metrics["token_usage_total"] += _estimate_tokens(message) + _estimate_tokens(final_response)
+    if redis_client is None or graph is None or settings is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Service not ready: Redis o grafo aún no inicializados.",
+        )
 
-        trace = latest_output.get("delegation_trace", [])
-        if isinstance(trace, list):
-            runtime_metrics["delegation_traces"].append(trace)
-            runtime_metrics["delegation_traces"] = runtime_metrics["delegation_traces"][-100:]
-
-        rag_metrics = latest_output.get("rag_metrics", {})
-        if isinstance(rag_metrics, dict) and rag_metrics:
-            runtime_metrics["rag_metrics_history"].append(rag_metrics)
-            runtime_metrics["rag_metrics_history"] = runtime_metrics["rag_metrics_history"][-100:]
-
-        yield {
-            "event": "final",
-            "data": json.dumps(
-                {
-                    "thread_id": thread_id,
-                    "response": final_response,
-                    "delegation_trace": trace,
-                    "rag_metrics": rag_metrics,
-                },
-                ensure_ascii=True,
-            ),
-        }
-
-    background_tasks.add_task(
-        _persist_profile_after_stream,
-        user_id,
-        conversational_profile,
-        stream_snapshot,
+    initial_state = _build_initial_state(payload, redis_client, settings)
+    logger.info(
+        "chat/stream user_id=%s session_id=%s",
+        initial_state["user_id"],
+        initial_state["session_id"],
     )
 
-    return EventSourceResponse(
-        event_generator(),
+    return StreamingResponse(
+        _stream_graph(graph, initial_state),
         media_type="text/event-stream",
-        background=background_tasks,
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
+
+
+# ---------------------------------------------------------------------------
+# Healthcheck para K8s / probes
+# ---------------------------------------------------------------------------
+@router.get("/healthz")
+async def healthz(request: Request) -> Dict[str, Any]:
+    redis_client = getattr(request.app.state, "redis", None)
+    redis_ok = False
+    if redis_client is not None:
+        try:
+            pong = await redis_client.ping()
+            redis_ok = bool(pong)
+        except Exception:
+            redis_ok = False
+    return {
+        "ok": redis_ok and getattr(request.app.state, "graph", None) is not None,
+        "redis": redis_ok,
+        "graph_loaded": getattr(request.app.state, "graph", None) is not None,
+    }

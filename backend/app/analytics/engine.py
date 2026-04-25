@@ -1,138 +1,174 @@
+"""
+backend/app/analytics/engine.py
+================================
+
+Carga los 3 modelos `.joblib` entrenados offline y expone una API uniforme
+para predecir el cluster de un usuario en línea (cuando no hay ficha cacheada
+en Redis o cuando se quiere recalcular).
+
+Si los .joblib NO existen (p.ej. en un fresh checkout sin scripts corridos),
+cae a un MOCK determinista basado en SHA-256(user_id) — útil para tests y
+para que el agente nunca se rompa por falta de modelos.
+"""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from hashlib import sha256
+import hashlib
+import json
+import logging
 from pathlib import Path
-from threading import Lock
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import joblib
+import numpy as np
 
-from app.core.config import get_settings
+logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True)
-class LoadedModel:
-    """Container for an artifact loaded from disk."""
+# ---------------------------------------------------------------------------
+# Listado de segmentos (espejo de los scripts offline)
+# ---------------------------------------------------------------------------
+CONDUCTUAL_SEGMENTS = [
+    "usuario_basico_bajo_enganche", "profesional_prospero_inversor",
+    "usuario_estres_financiero", "joven_digital_hey_pro",
+    "actividad_atipica_alerta", "empresario_alto_volumen",
+    "cliente_promedio_estable",
+]
+TRANSACCIONAL_SEGMENTS = [
+    "consumidor_digital_ocio", "pagador_servicios_hogar",
+    "comprador_presencial_frecuente", "viajero_internacional",
+    "ahorrador_inversor", "transaccional_promedio",
+]
+SALUD_SEGMENTS = [
+    "solido_sin_credito", "en_construccion_crediticia",
+    "activo_saludable", "presion_financiera",
+]
+SALUD_OFFER = {
+    "solido_sin_credito": "ofrecer_primer_credito_o_inversion",
+    "en_construccion_crediticia": "productos_construccion_historial_y_cashback",
+    "activo_saludable": "inversion_seguros_premium",
+    "presion_financiera": "alivio_planes_pago_NO_aumentar_deuda",
+}
 
-    name: str
-    path: Path
-    artifact: Any = field(repr=False)
+
+# ---------------------------------------------------------------------------
+# Loader de modelos
+# ---------------------------------------------------------------------------
+class _ModelBundle:
+    """Wrapper sobre lo que guarda joblib en cada script offline."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.loaded = False
+        self.model = None
+        self.scaler = None
+        self.feature_cols: List[str] = []
+        self.cluster_to_name: Dict[int, str] = {}
+        self.extras: Dict[str, Any] = {}
+
+    def try_load(self) -> bool:
+        if not self.path.exists():
+            logger.warning("Modelo no encontrado: %s — usaré mock", self.path)
+            return False
+        try:
+            data = joblib.load(self.path)
+            self.model = data["kmeans"]
+            self.scaler = data["scaler"]
+            self.feature_cols = list(data["feature_cols"])
+            self.cluster_to_name = {int(k): v for k, v in data["cluster_to_name"].items()}
+            self.extras = {k: v for k, v in data.items()
+                           if k not in {"kmeans", "scaler", "feature_cols", "cluster_to_name"}}
+            self.loaded = True
+            logger.info("Modelo cargado %s (n_clusters=%d)",
+                        self.path.name, len(self.cluster_to_name))
+            return True
+        except Exception:
+            logger.exception("Fallo al cargar %s — usaré mock", self.path)
+            return False
+
+    def predict(self, features_row: Dict[str, float]) -> int:
+        if not self.loaded:
+            raise RuntimeError("Modelo no cargado")
+        x = np.array([[features_row.get(c, 0.0) for c in self.feature_cols]], dtype=float)
+        x_std = self.scaler.transform(x)
+        return int(self.model.predict(x_std)[0])
 
 
 class AnalyticsEngine:
-    """Singleton engine that serves analytical user insights from classical ML artifacts."""
+    """API pública del módulo. Singleton-friendly."""
 
-    _instance: AnalyticsEngine | None = None
-    _singleton_lock: Lock = Lock()
+    def __init__(self, models_dir: Path):
+        self.models_dir = Path(models_dir)
+        self.conductual = _ModelBundle(self.models_dir / "conductual_kmeans.joblib")
+        self.transaccional = _ModelBundle(self.models_dir / "transaccional_kmeans.joblib")
+        self.salud = _ModelBundle(self.models_dir / "salud_financiera_kmeans.joblib")
+        self._loaded = False
 
-    def __new__(cls) -> AnalyticsEngine:
-        if cls._instance is None:
-            with cls._singleton_lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self) -> None:
-        if getattr(self, "_initialized", False):
-            return
-
-        settings = get_settings()
-        self._models_dir = Path(settings.analytics_models_dir)
-        self._loaded_models: dict[str, LoadedModel] = {}
-        self._models_loaded = False
-        self._initialized = True
+    def load(self) -> None:
+        c = self.conductual.try_load()
+        t = self.transaccional.try_load()
+        s = self.salud.try_load()
+        self._loaded = all([c, t, s])
+        if not self._loaded:
+            logger.warning("AnalyticsEngine: usando MOCK SHA-256 para segmentos faltantes")
 
     @property
-    def models_loaded(self) -> bool:
-        """Return whether at least one analytics artifact is loaded."""
+    def fully_loaded(self) -> bool:
+        return self._loaded
 
-        return self._models_loaded
+    # ------------------------------------------------------------------
+    # API por user_id (sólo cuando NO se tienen las features ya calculadas)
+    # En el flujo del agente, las fichas ya están en Redis vía script 04,
+    # así que esta función es fallback / one-off.
+    # ------------------------------------------------------------------
+    def predict_segments_for_user(self, user_id: str,
+                                  features: Optional[Dict[str, Dict[str, float]]] = None
+                                  ) -> Dict[str, Any]:
+        if features is None or not all([self.conductual.loaded,
+                                        self.transaccional.loaded,
+                                        self.salud.loaded]):
+            return self._mock_segments(user_id)
 
-    @property
-    def model_names(self) -> list[str]:
-        """Return loaded model names."""
+        cond_id = self.conductual.predict(features.get("conductual", {}))
+        trans_id = self.transaccional.predict(features.get("transaccional", {}))
+        salud_id = self.salud.predict(features.get("salud_financiera", {}))
 
-        return sorted(self._loaded_models.keys())
-
-    def load_models(self) -> None:
-        """Load .pkl and .joblib artifacts from the configured model directory.
-
-        Invalid or corrupted artifacts are skipped to keep startup resilient.
-        """
-
-        self._models_dir.mkdir(parents=True, exist_ok=True)
-        discovered_paths = sorted(self._models_dir.glob("*.pkl")) + sorted(
-            self._models_dir.glob("*.joblib")
-        )
-
-        loaded_models: dict[str, LoadedModel] = {}
-        for model_path in discovered_paths:
-            try:
-                artifact = joblib.load(model_path)
-            except (EOFError, FileNotFoundError, OSError, TypeError, ValueError):
-                continue
-
-            loaded_models[model_path.stem] = LoadedModel(
-                name=model_path.stem,
-                path=model_path,
-                artifact=artifact,
-            )
-
-        self._loaded_models = loaded_models
-        self._models_loaded = bool(loaded_models)
-
-    async def get_user_insights(self, user_id: str) -> dict[str, Any]:
-        """Return structured analytics insights for a user.
-
-        The current implementation returns deterministic mock insights, while exposing
-        model metadata to ease future migration to real estimators.
-        """
-
-        normalized_user_id = user_id.strip() or "anonymous"
-        digest = sha256(normalized_user_id.encode("utf-8")).hexdigest()
-        seed = int(digest[:8], 16)
-
-        score = 45 + (seed % 56)
-        spending_variability = 10 + (seed % 65)
-        avg_monthly_tickets = 2 + (seed % 18)
-        churn_risk = round((seed % 100) / 100, 2)
-
-        segment_candidates = [
-            "ahorrador_prudente",
-            "inversionista_curioso",
-            "crecimiento_acelerado",
-            "conservador_digital",
-        ]
-        segment = segment_candidates[seed % len(segment_candidates)]
-
-        if score >= 80:
-            financial_label = "solida"
-        elif score >= 60:
-            financial_label = "estable"
-        else:
-            financial_label = "vulnerable"
-
+        salud_name = self.salud.cluster_to_name.get(salud_id, "en_construccion_crediticia")
         return {
-            "user_id": normalized_user_id,
-            "perfil_cliente": {
-                "segmento": segment,
-                "canal_preferido": "digital",
-                "sensibilidad_riesgo": "media" if score >= 60 else "alta",
+            "conductual": {
+                "cluster": cond_id,
+                "name": self.conductual.cluster_to_name.get(cond_id, "cliente_promedio_estable"),
+            },
+            "transaccional": {
+                "cluster": trans_id,
+                "name": self.transaccional.cluster_to_name.get(trans_id, "transaccional_promedio"),
+                "top_spending_categories": (self.transaccional.extras
+                                            .get("top_categories", {})
+                                            .get(trans_id, [])),
             },
             "salud_financiera": {
-                "score": score,
-                "categoria": financial_label,
-                "churn_risk": churn_risk,
+                "cluster": salud_id,
+                "name": salud_name,
+                "offer_strategy": SALUD_OFFER.get(salud_name, ""),
             },
-            "comportamiento_transaccional": {
-                "variabilidad_gasto": spending_variability,
-                "tickets_mensuales_promedio": avg_monthly_tickets,
-                "pico_consumo_fin_de_mes": bool(seed % 2),
+        }
+
+    # ------------------------------------------------------------------
+    def _mock_segments(self, user_id: str) -> Dict[str, Any]:
+        h = hashlib.sha256(user_id.encode("utf-8")).digest()
+        cond_idx = h[0] % len(CONDUCTUAL_SEGMENTS)
+        trans_idx = h[1] % len(TRANSACCIONAL_SEGMENTS)
+        salud_idx = h[2] % len(SALUD_SEGMENTS)
+        salud_name = SALUD_SEGMENTS[salud_idx]
+        return {
+            "conductual": {"cluster": cond_idx, "name": CONDUCTUAL_SEGMENTS[cond_idx]},
+            "transaccional": {
+                "cluster": trans_idx,
+                "name": TRANSACCIONAL_SEGMENTS[trans_idx],
+                "top_spending_categories": [],
             },
-            "metadata_analitica": {
-                "models_loaded": self.models_loaded,
-                "available_models": self.model_names,
+            "salud_financiera": {
+                "cluster": salud_idx,
+                "name": salud_name,
+                "offer_strategy": SALUD_OFFER.get(salud_name, ""),
             },
         }
