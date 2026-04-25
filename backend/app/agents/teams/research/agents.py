@@ -4,7 +4,14 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
-from app.agents.teams.research.state import ResearchState
+from app.agents.micro_agents.summarizer_slm import summarize_with_slm
+from app.agents.teams.research.state import (
+    ResearchContext,
+    ResearchDraft,
+    ResearchPlan,
+    ResearchState,
+    RetrievedDocument,
+)
 from app.rag.retrieval import get_hybrid_retriever
 
 
@@ -30,58 +37,66 @@ def _latest_user_query(messages: list[BaseMessage]) -> str:
 
 async def plan_research(state: ResearchState) -> dict[str, Any]:
     query = _latest_user_query(state.get("messages", []))
-    notes = list(state.get("notes", []))
-    notes.append("Prepared hybrid retrieval plan from user question.")
+    plan = ResearchPlan(
+        query=query,
+        requires_vision=bool(state.get("base64_images")),
+        top_k=15,
+    )
     return {
-        "query": query,
+        "plan": plan.model_dump(),
         "team_iterations": state.get("team_iterations", 0) + 1,
-        "notes": notes,
     }
 
 
 async def gather_context(state: ResearchState) -> dict[str, Any]:
-    query = state.get("query") or _latest_user_query(state.get("messages", []))
-    notes = list(state.get("notes", []))
+    plan = ResearchPlan.model_validate(state.get("plan", {}))
+    vision_notes = state.get("vision_notes", [])
 
     retriever = await get_hybrid_retriever()
-    hits = await retriever.retrieve(query=query, top_k=4)
+    hits = await retriever.retrieve(query=plan.query, top_k=plan.top_k)
 
-    snippets: list[str] = []
+    documents: list[RetrievedDocument] = []
     for hit in hits:
-        snippets.append(
-            (
-                f"[{hit.id}] {hit.text} "
-                f"(rerank={hit.rerank_score:.4f}, dense={hit.dense_score:.4f}, bm25={hit.bm25_score:.4f})"
+        documents.append(
+            RetrievedDocument(
+                doc_id=hit.id,
+                text=hit.text,
+                metadata=hit.metadata,
+                dense_score=hit.dense_score,
+                bm25_score=hit.bm25_score,
+                rerank_score=hit.rerank_score,
             )
         )
 
-    if not snippets:
-        snippets.append("No indexed documents found in Redis. Falling back to reasoning-only answer.")
+    context = ResearchContext(
+        plan=plan,
+        documents=documents,
+        vision_notes=[str(item) for item in vision_notes],
+    )
 
-    notes.append(f"Retrieved {len(snippets)} snippets with hybrid search + simulated rerank.")
     return {
-        "context_snippets": snippets,
-        "notes": notes,
+        "context": context.model_dump(),
     }
 
 
 async def draft_research_response(state: ResearchState) -> dict[str, Any]:
-    query = state.get("query") or _latest_user_query(state.get("messages", []))
-    snippets = state.get("context_snippets", [])
-
-    evidence = "\n".join(f"- {snippet}" for snippet in snippets)
-    if not evidence:
-        evidence = "- No external evidence available."
-
-    response = (
-        "Research Team Findings\n"
-        f"Question: {query}\n"
-        "Evidence:\n"
-        f"{evidence}\n"
-        "Conclusion: This draft came from the research subgraph after hybrid retrieval and reranking."
+    context = ResearchContext.model_validate(state.get("context", {}))
+    evidence = [doc.text for doc in context.documents]
+    response = await summarize_with_slm(
+        query=context.plan.query,
+        evidence=evidence,
+        vision_notes=context.vision_notes,
     )
 
+    citations = [doc.doc_id for doc in context.documents[:3]]
+    metrics: dict[str, float | int] = {
+        "hybrid_candidates": len(context.documents),
+        "reranked_returned": min(3, len(context.documents)),
+    }
+    draft = ResearchDraft(answer=response, citations=citations, rag_metrics=metrics)
+
     return {
-        "draft_answer": response,
+        "draft": draft.model_dump(),
+        "rag_metrics": metrics,
         "messages": [AIMessage(content=response)],
     }

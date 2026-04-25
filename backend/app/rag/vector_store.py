@@ -5,6 +5,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
+from redis.asyncio import Redis
+
 try:
     from redisvl.index import SearchIndex
     from redisvl.query import TextQuery, VectorQuery
@@ -40,19 +42,27 @@ class RedisHybridVectorStore:
         prefix: str,
         vector_dims: int,
     ) -> None:
-        if SearchIndex is None or TextQuery is None or VectorQuery is None:
-            raise ImportError(
-                "RedisVL is not available. Install redisvl to use hybrid retrieval."
-            )
-
         self.redis_url = redis_url
         self.index_name = index_name
         self.prefix = prefix
         self.vector_dims = vector_dims
+        self._redis: Redis | None = None
+        self._index: Any | None = None
 
-        self._index = SearchIndex.from_dict(self._build_schema())
-        if hasattr(self._index, "connect"):
-            self._index.connect(redis_url=self.redis_url)
+    async def connect(self) -> None:
+        if self._redis is None:
+            self._redis = Redis.from_url(self.redis_url, decode_responses=True)
+
+        if self._index is None and SearchIndex is not None:
+            self._index = SearchIndex.from_dict(self._build_schema())
+            if hasattr(self._index, "connect"):
+                await asyncio.to_thread(self._index.connect, redis_url=self.redis_url)
+
+    async def close(self) -> None:
+        if self._redis is not None:
+            await self._redis.aclose()
+        self._redis = None
+        self._index = None
 
     def _build_schema(self) -> dict[str, Any]:
         return {
@@ -79,13 +89,20 @@ class RedisHybridVectorStore:
         }
 
     async def initialize(self) -> None:
+        await self.connect()
+        if self._index is None:
+            return
+
         try:
             await asyncio.to_thread(self._index.create)
-        except (RuntimeError, ValueError) as exc:
+        except (RuntimeError, ValueError, TypeError) as exc:
             if "exists" not in str(exc).lower():
                 raise
 
     async def upsert_documents(self, documents: Iterable[IndexedDocument]) -> None:
+        if self._index is None:
+            return
+
         payload = [
             {
                 "id": doc.id,
@@ -100,6 +117,9 @@ class RedisHybridVectorStore:
         await asyncio.to_thread(self._index.load, payload, id_field="id")
 
     async def dense_search(self, query_embedding: list[float], top_k: int = 8) -> list[SearchHit]:
+        if self._index is None or VectorQuery is None:
+            return []
+
         query = VectorQuery(
             vector=query_embedding,
             vector_field_name="embedding",
@@ -110,6 +130,9 @@ class RedisHybridVectorStore:
         return self._to_hits(raw, mode="dense")
 
     async def bm25_search(self, query_text: str, top_k: int = 8) -> list[SearchHit]:
+        if self._index is None or TextQuery is None:
+            return []
+
         query = TextQuery(
             query_text,
             return_fields=["id", "text", "metadata"],
@@ -135,7 +158,12 @@ class RedisHybridVectorStore:
                 merged[bm25_hit.id].bm25_score = bm25_hit.bm25_score
             else:
                 merged[bm25_hit.id] = bm25_hit
-        return list(merged.values())
+
+        return sorted(
+            merged.values(),
+            key=lambda item: (item.bm25_score + max(0.0, 1.0 - item.dense_score)),
+            reverse=True,
+        )
 
     def _to_hits(self, raw: Any, mode: str) -> list[SearchHit]:
         rows = raw

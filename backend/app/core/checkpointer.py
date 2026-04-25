@@ -6,6 +6,11 @@ from typing import Any
 from app.core.config import Settings
 
 try:
+    from langgraph.checkpoint.memory import MemorySaver
+except ImportError:
+    MemorySaver = None  # type: ignore[assignment]
+
+try:
     from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 except ImportError:
     try:
@@ -19,10 +24,17 @@ class CheckpointerUnavailableError(RuntimeError):
 
 
 async def create_checkpointer(settings: Settings) -> tuple[Any, Any | None]:
+    if settings.testing:
+        if MemorySaver is None:
+            return None, None
+        return MemorySaver(), None
+
     if AsyncRedisSaver is None:
-        raise CheckpointerUnavailableError(
-            "AsyncRedisSaver is unavailable. Install langgraph-checkpoint-redis."
-        )
+        if MemorySaver is None:
+            raise CheckpointerUnavailableError(
+                "AsyncRedisSaver is unavailable. Install langgraph-checkpoint-redis."
+            )
+        return MemorySaver(), None
 
     if hasattr(AsyncRedisSaver, "from_conn_string"):
         saver_candidate = AsyncRedisSaver.from_conn_string(settings.redis_url)
@@ -40,6 +52,9 @@ async def create_checkpointer(settings: Settings) -> tuple[Any, Any | None]:
 
 
 async def close_checkpointer(saver: Any, saver_context: Any | None = None) -> None:
+    if saver is None:
+        return
+
     if saver_context is not None:
         await saver_context.__aexit__(None, None, None)
         return

@@ -18,8 +18,8 @@ class ToolOpsState(TypedDict, total=False):
     messages: Annotated[list[BaseMessage], add_messages]
     thread_id: str
     team_iterations: int
-    tool_request: str
-    tool_result: dict[str, Any]
+    request: dict[str, Any]
+    result: dict[str, Any]
 
 
 def build_tool_ops_subgraph():

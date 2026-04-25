@@ -1,16 +1,14 @@
-FROM python:3.11-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
-
 COPY pyproject.toml ./
 COPY app ./app
 
-RUN uv pip install --system -e .
+RUN uv pip install --system --no-cache -e .
 
 
 FROM python:3.11-slim AS runtime
@@ -21,8 +19,7 @@ ENV PORT=8080
 
 WORKDIR /app
 
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local /usr/local
 COPY app ./app
 
 EXPOSE 8080

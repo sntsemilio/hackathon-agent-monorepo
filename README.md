@@ -1,21 +1,35 @@
 # Hackathon Agent Monorepo
 
-Production-ready AI agent monorepo for Google Cloud Run with asynchronous I/O, hierarchical LangGraph delegation, MCP integration, and Redis-backed hybrid RAG.
+Production-grade AI agent platform scaffold for Google Cloud Run with async-first backend services, hierarchical LangGraph delegation, MCP tool integration, advanced RAG, RBAC admin observability, and hardened prompt-security controls.
 
-## Architecture Blueprint
+## Exact Repository Layout
 
 ```text
 hackathon-agent-monorepo/
+├── .devcontainer/
+│   └── devcontainer.json
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
 ├── backend/
 │   ├── app/
+│   │   ├── api/
+│   │   │   ├── routes.py
+│   │   │   └── admin/
+│   │   │       ├── metrics.py
+│   │   │       └── evals.py
 │   │   ├── agents/
 │   │   │   ├── state.py
 │   │   │   ├── supervisor.py
+│   │   │   ├── micro_agents/
+│   │   │   │   ├── guardrail_slm.py
+│   │   │   │   └── summarizer_slm.py
 │   │   │   └── teams/
 │   │   │       ├── research/
 │   │   │       │   ├── graph.py
 │   │   │       │   ├── state.py
-│   │   │       │   └── agents.py
+│   │   │       │   ├── agents.py
+│   │   │       │   └── vision_agent.py
 │   │   │       └── tool_ops/
 │   │   │           ├── graph.py
 │   │   │           └── agents.py
@@ -28,133 +42,137 @@ hackathon-agent-monorepo/
 │   │   │   ├── retrieval.py
 │   │   │   ├── re_ranker.py
 │   │   │   └── vector_store.py
+│   │   ├── evals/
+│   │   │   ├── framework.py
+│   │   │   └── test_set.py
 │   │   ├── core/
+│   │   │   ├── auth.py
 │   │   │   ├── config.py
+│   │   │   ├── database.py
 │   │   │   ├── checkpointer.py
-│   │   │   └── database.py
+│   │   │   └── rate_limit.py
 │   │   ├── __init__.py
 │   │   └── main.py
+│   ├── tests/
+│   │   ├── conftest.py
+│   │   ├── test_api.py
+│   │   ├── test_agents.py
+│   │   ├── test_security.py
+│   │   └── test_rag.py
 │   ├── pyproject.toml
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   └── main_view.py
+│   │   └── views/
+│   │       ├── user_chat.py
+│   │       └── admin_dashboard.py
 │   └── Dockerfile
 ├── infrastructure/
-│   ├── setup_redis.sh
-│   └── deploy_gcp.sh
-├── docker-compose.yml
+│   ├── docker-compose.yml
+│   └── setup_redis.sh
 ├── Makefile
+├── .pre-commit-config.yaml
 ├── .env.example
 ├── .gitignore
 └── README.md
 ```
 
-## What Is Implemented
+## Architecture Summary
 
-- Async FastAPI backend with Server-Sent Events streaming on POST /chat/stream
-- LangGraph supervisor that delegates to two subgraphs:
-  - research (hybrid retrieval and summarization)
-  - tool_ops (local async code execution skill)
-- MCP integration:
-  - async JSON-RPC client for external MCP server connections
-  - adapter converting MCP JSON tool definitions into LangChain tools
-- RAG stack:
-  - RedisVL vector + BM25 retrieval strategy
-  - simulated reranker pass over merged candidates
-- Persistence:
-  - AsyncRedisSaver checkpointer for durable graph memory across restarts
-- Cloud Run-ready Docker (multi-stage backend image exposing port 8080)
+- Async I/O end-to-end in backend request handling, graph execution, Redis operations, and tool integration.
+- Hierarchical LangGraph delegation in `supervisor.py`, routing to `research` or `tool_ops` subgraphs.
+- Guardrail SLM defense in `micro_agents/guardrail_slm.py` runs before delegation and blocks prompt injection, jailbreak, and system prompt extraction attempts.
+- MCP integration in `mcp/client.py` and `mcp/adapter.py` transforms external MCP tools into LangChain tools.
+- Advanced RAG pipeline:
+  - Hybrid retrieval (dense + BM25) from RedisVL in `rag/retrieval.py` and `rag/vector_store.py`
+  - Cross-encoder rerank from Top 15 to Top 3 in `rag/re_ranker.py`
+  - Ragas-compatible evaluation runner in `evals/framework.py`
+- RBAC-protected admin endpoints under `/admin/*` for token usage, delegation traces, and eval metrics.
+- Native multimodality support for Base64 images in global state and `research/vision_agent.py`.
+- Redis-backed budget protection through slowapi + async Redis counters.
 
-## Prerequisites
+## Quickstart
 
-- Python 3.11+
-- Docker + Docker Compose
-- uv
-- gcloud CLI (for deploy target)
+### 1. Environment
 
-## Environment Setup
+```bash
+cp .env.example .env
+```
 
-1. Copy environment file:
+Set at minimum:
 
-   ```bash
-   cp .env.example .env
-   ```
+- `JWT_SECRET_KEY`
+- `REDIS_URL`
+- `GCP_PROJECT_ID`
+- `GCP_REGION`
+- `GCP_SERVICE_NAME`
 
-2. Edit .env with your Redis endpoint, MCP host/port, and GCP deployment values.
+### 2. DevContainers
 
-## Local Development
+Open this repo in VS Code and choose **Reopen in Container**. The container installs `uv` and backend dependencies from `backend/pyproject.toml`.
 
-### Option A: Docker Compose
+### 3. Local Development
 
 ```bash
 make up
 ```
 
-Services:
-- Backend API: http://localhost:8080
-- Frontend console: http://localhost:8081
-- Redis Stack: redis://localhost:6379
+This launches:
 
-### Option B: Backend only (uv)
+- Backend at `http://localhost:8080`
+- Frontend at `http://localhost:8081`
+- Redis at `redis://localhost:6379`
 
-```bash
-cd backend
-uv venv
-uv pip install -e .
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
-```
-
-Or from repo root:
+Backend-only hot reload:
 
 ```bash
 make dev
 ```
 
-## Makefile Commands
+### 4. Quality Gates
 
-- make up: build and start all services with Docker Compose
-- make dev: run FastAPI backend in hot-reload mode with uv
-- make deploy: deploy backend container to Google Cloud Run using infrastructure/deploy_gcp.sh
-
-## API Streaming Contract
-
-Endpoint:
-
-- POST /chat/stream
-
-Request body:
-
-```json
-{
-  "message": "Research current redis hybrid search patterns",
-  "thread_id": "optional-thread-id"
-}
-```
-
-SSE event types:
-
-- trace: supervisor/subgraph execution events from LangGraph astream_events()
-- final: final response payload with thread_id
-- error: stream-time exception payload
-
-## Deployment
-
-Deploy to Cloud Run:
+Run formatters:
 
 ```bash
-make deploy
+make format
 ```
 
-The deploy script:
-- builds backend image
-- pushes image to gcr.io
-- deploys Cloud Run service on port 8080
-- passes runtime env vars for Redis and MCP settings
+Run tests:
 
-## Notes for Hackathon Teams
+```bash
+make test
+```
 
-- The supervisor currently uses intent keywords for deterministic routing between subgraphs.
-- Reranking is intentionally simulated to keep dependencies light and demo behavior explicit.
-- Replace hash-based query embeddings with your production embedding model before launch.
+Run eval suite:
+
+```bash
+make evals
+```
+
+### 5. Deployment (CI/CD)
+
+GitHub Actions workflow at `.github/workflows/deploy.yml` triggers on push to `main`.
+
+Pipeline behavior:
+
+1. Install dependencies with `uv`
+2. Run `pytest`
+3. Stop immediately if tests fail
+4. Build and push backend image
+5. Deploy image to Google Cloud Run if tests pass
+
+Required GitHub configuration:
+
+- `secrets.GCP_SA_KEY`
+- `secrets.GCP_PROJECT_ID`
+- `secrets.REDIS_URL`
+- `secrets.JWT_SECRET_KEY`
+- `vars.CLOUD_RUN_SERVICE`
+- `vars.GCP_REGION`
+
+## Security Notes
+
+- Guardrail policy is fail-closed when heuristics detect attacks.
+- Admin metrics and eval routes require JWT tokens with `role=admin`.
+- Tool execution skill applies restrictive local policy checks before execution.

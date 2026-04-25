@@ -16,7 +16,16 @@ class MCPClient:
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
 
+    async def __aenter__(self) -> MCPClient:
+        await self.connect()
+        return self
+
+    async def __aexit__(self, *_: Any) -> None:
+        await self.close()
+
     async def connect(self) -> None:
+        if self._reader is not None and self._writer is not None:
+            return
         self._reader, self._writer = await asyncio.wait_for(
             asyncio.open_connection(self.host, self.port),
             timeout=self.timeout_seconds,

@@ -10,4 +10,4 @@ COPY src ./src
 
 EXPOSE 8081
 
-CMD ["python", "src/main_view.py"]
+CMD ["python", "src/views/user_chat.py"]

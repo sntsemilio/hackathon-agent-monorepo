@@ -4,8 +4,20 @@ import re
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from pydantic import BaseModel, Field
 
 from app.skills.code_executor import execute_python_code
+
+
+class ToolRequest(BaseModel):
+    code: str = Field(min_length=1)
+    language: str = "python"
+
+
+class ToolResult(BaseModel):
+    stdout: str = ""
+    stderr: str = ""
+    exit_code: int = 0
 
 
 def _message_to_text(message: BaseMessage) -> str:
@@ -52,23 +64,31 @@ async def prepare_tool_request(state: dict[str, Any]) -> dict[str, Any]:
         else:
             tool_request = "print('No executable Python code found in request.')"
 
+    request_model = ToolRequest(code=tool_request, language="python")
     return {
-        "tool_request": tool_request,
+        "request": request_model.model_dump(),
         "team_iterations": state.get("team_iterations", 0) + 1,
     }
 
 
 async def execute_tool_request(state: dict[str, Any]) -> dict[str, Any]:
-    tool_request = state.get("tool_request", "print('No tool request provided.')")
-    tool_result = await execute_python_code(tool_request, timeout_seconds=8)
-    return {"tool_result": tool_result}
+    request_payload = ToolRequest.model_validate(
+        state.get("request", {"code": "print('No tool request provided.')"})
+    )
+    executed = await execute_python_code(request_payload.code, timeout_seconds=8)
+    result_model = ToolResult(
+        stdout=str(executed.get("stdout", "")),
+        stderr=str(executed.get("stderr", "")),
+        exit_code=int(executed.get("exit_code", -1)),
+    )
+    return {"result": result_model.model_dump()}
 
 
 async def craft_tool_response(state: dict[str, Any]) -> dict[str, Any]:
-    result = state.get("tool_result", {})
-    stdout = str(result.get("stdout", "")).strip() or "(empty)"
-    stderr = str(result.get("stderr", "")).strip() or "(empty)"
-    exit_code = result.get("exit_code", -1)
+    result = ToolResult.model_validate(state.get("result", {}))
+    stdout = result.stdout.strip() or "(empty)"
+    stderr = result.stderr.strip() or "(empty)"
+    exit_code = result.exit_code
 
     response = (
         "Tool Ops Result\n"

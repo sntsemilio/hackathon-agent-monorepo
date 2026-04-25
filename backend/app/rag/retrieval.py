@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 
 from app.core.config import get_settings
-from app.rag.re_ranker import simulate_rerank
+from app.rag.re_ranker import rerank_top_k
 from app.rag.vector_store import RedisHybridVectorStore, SearchHit
 
 
@@ -13,14 +13,14 @@ class HybridRetriever:
         self._store = store
         self._embedding_dims = embedding_dims
 
-    async def retrieve(self, query: str, top_k: int = 6) -> list[SearchHit]:
+    async def retrieve(self, query: str, top_k: int = 15) -> list[SearchHit]:
         query_embedding = self._hash_embed(query)
         merged_hits = await self._store.hybrid_search(
             query_text=query,
             query_embedding=query_embedding,
-            top_k=max(top_k * 2, top_k),
+            top_k=top_k,
         )
-        return await simulate_rerank(query=query, hits=merged_hits, top_k=top_k)
+        return await rerank_top_k(query=query, hits=merged_hits)
 
     def _hash_embed(self, text: str) -> list[float]:
         digest = hashlib.sha256(text.encode("utf-8")).digest()
@@ -52,7 +52,11 @@ async def get_hybrid_retriever() -> HybridRetriever:
                 prefix=settings.redis_prefix,
                 vector_dims=settings.redis_vector_dims,
             )
-            await store.initialize()
+            try:
+                await store.initialize()
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+                # Keep startup resilient in local/offline environments.
+                pass
             cached = HybridRetriever(store=store, embedding_dims=settings.redis_vector_dims)
             _retriever_holder["instance"] = cached
 

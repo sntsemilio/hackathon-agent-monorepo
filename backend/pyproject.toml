@@ -1,19 +1,34 @@
 [project]
 name = "hackathon-agent-backend"
 version = "0.1.0"
-description = "Production-ready async AI agent backend with LangGraph and MCP"
+description = "Production-grade async AI agent backend with LangGraph, MCP, and secure RAG"
 readme = "../README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "fastapi>=0.111.0",
-  "uvicorn[standard]>=0.30.0",
-  "langgraph>=0.2.0",
-  "langchain-core>=0.3.0",
-  "redis>=5.0.0",
-  "redisvl>=0.3.5",
-  "sse-starlette>=2.1.2",
-  "pydantic-settings>=2.4.0",
+  "fastapi>=0.111.0,<1.0.0",
+  "uvicorn[standard]>=0.30.0,<1.0.0",
+  "sse-starlette>=2.1.2,<3.0.0",
+  "slowapi>=0.1.9,<1.0.0",
+  "langgraph>=0.2.0,<1.0.0",
+  "langchain-core>=0.3.0,<1.0.0",
+  "litellm>=1.52.0,<2.0.0",
+  "redis>=5.0.0,<6.0.0",
+  "redisvl>=0.3.5,<1.0.0",
+  "pydantic-settings>=2.4.0,<3.0.0",
+  "python-jose[cryptography]>=3.3.0,<4.0.0",
   "langgraph-checkpoint-redis>=0.0.6",
+  "ragas>=0.2.0,<1.0.0",
+  "sentence-transformers>=3.0.0,<4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0,<9.0.0",
+  "pytest-asyncio>=0.23.8,<1.0.0",
+  "httpx>=0.27.0,<1.0.0",
+  "anyio>=4.4.0,<5.0.0",
+  "ruff>=0.6.0,<1.0.0",
+  "pre-commit>=3.8.0,<4.0.0",
 ]
 
 [build-system]
@@ -22,3 +37,17 @@ build-backend = "hatchling.build"
 
 [tool.uv]
 package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S"]
+ignore = ["S603", "S607"]
