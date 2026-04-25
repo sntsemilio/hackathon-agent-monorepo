@@ -1,203 +1,74 @@
+"""
+backend/app/rag/vector_store.py
+================================
+
+Vector store sobre Redis con RedisVL HNSW (hybrid search texto + vector).
+
+Uso desde el agente:
+    store = VectorStore()
+    hits = await store.hybrid_search("¿cómo activo Hey Pro?", top_k=5)
+
+Diseño:
+  - El índice se llama por settings.REDIS_INDEX_NAME (default: "havi_kb").
+  - Si RedisVL no está instalado o el índice no existe, devuelve [] sin romper.
+  - El backfill del índice se hace con un script aparte (no incluido aquí).
+"""
 from __future__ import annotations
 
-import asyncio
-import json
-from dataclasses import dataclass, field
-from typing import Any, Iterable
+import logging
+from typing import Any, Dict, List, Optional
 
-from redis.asyncio import Redis
+from app.core.config import get_settings
 
-try:
-    from redisvl.index import SearchIndex
-    from redisvl.query import TextQuery, VectorQuery
-except ImportError:
-    SearchIndex = None  # type: ignore[assignment]
-    TextQuery = None  # type: ignore[assignment]
-    VectorQuery = None  # type: ignore[assignment]
+logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True)
-class IndexedDocument:
-    id: str
-    text: str
-    embedding: list[float]
-    metadata: dict[str, Any] = field(default_factory=dict)
+class VectorStore:
+    """Wrapper sobre redisvl.SearchIndex. Tolerante a falta de instalación."""
 
-
-@dataclass(slots=True)
-class SearchHit:
-    id: str
-    text: str
-    metadata: dict[str, Any]
-    dense_score: float = 0.0
-    bm25_score: float = 0.0
-    rerank_score: float = 0.0
-
-
-class RedisHybridVectorStore:
-    def __init__(
-        self,
-        redis_url: str,
-        index_name: str,
-        prefix: str,
-        vector_dims: int,
-    ) -> None:
-        self.redis_url = redis_url
-        self.index_name = index_name
-        self.prefix = prefix
-        self.vector_dims = vector_dims
-        self._redis: Redis | None = None
-        self._index: Any | None = None
-
-    async def connect(self) -> None:
-        if self._redis is None:
-            self._redis = Redis.from_url(self.redis_url, decode_responses=True)
-
-        if self._index is None and SearchIndex is not None:
-            self._index = SearchIndex.from_dict(self._build_schema())
-            if hasattr(self._index, "connect"):
-                await asyncio.to_thread(self._index.connect, redis_url=self.redis_url)
-
-    async def close(self) -> None:
-        if self._redis is not None:
-            await self._redis.aclose()
-        self._redis = None
+    def __init__(self) -> None:
+        self.settings = get_settings()
         self._index = None
+        self._embedder = None
+        self._tried = False
 
-    def _build_schema(self) -> dict[str, Any]:
-        return {
-            "index": {
-                "name": self.index_name,
-                "prefix": self.prefix,
-                "storage_type": "hash",
-            },
-            "fields": [
-                {"name": "id", "type": "tag"},
-                {"name": "text", "type": "text"},
-                {"name": "metadata", "type": "text"},
-                {
-                    "name": "embedding",
-                    "type": "vector",
-                    "attrs": {
-                        "algorithm": "hnsw",
-                        "datatype": "float32",
-                        "dims": self.vector_dims,
-                        "distance_metric": "cosine",
-                    },
-                },
-            ],
-        }
-
-    async def initialize(self) -> None:
-        await self.connect()
-        if self._index is None:
+    def _try_init(self) -> None:
+        if self._tried:
             return
-
+        self._tried = True
         try:
-            await asyncio.to_thread(self._index.create)
-        except (RuntimeError, ValueError, TypeError) as exc:
-            if "exists" not in str(exc).lower():
-                raise
+            from redisvl.index import AsyncSearchIndex
+            from redisvl.utils.vectorize import HFTextVectorizer
 
-    async def upsert_documents(self, documents: Iterable[IndexedDocument]) -> None:
-        if self._index is None:
-            return
-
-        payload = [
-            {
-                "id": doc.id,
-                "text": doc.text,
-                "metadata": json.dumps(doc.metadata, ensure_ascii=True),
-                "embedding": doc.embedding,
-            }
-            for doc in documents
-        ]
-        if not payload:
-            return
-        await asyncio.to_thread(self._index.load, payload, id_field="id")
-
-    async def dense_search(self, query_embedding: list[float], top_k: int = 8) -> list[SearchHit]:
-        if self._index is None or VectorQuery is None:
-            return []
-
-        query = VectorQuery(
-            vector=query_embedding,
-            vector_field_name="embedding",
-            return_fields=["id", "text", "metadata"],
-            num_results=top_k,
-        )
-        raw = await asyncio.to_thread(self._index.query, query)
-        return self._to_hits(raw, mode="dense")
-
-    async def bm25_search(self, query_text: str, top_k: int = 8) -> list[SearchHit]:
-        if self._index is None or TextQuery is None:
-            return []
-
-        query = TextQuery(
-            query_text,
-            return_fields=["id", "text", "metadata"],
-            num_results=top_k,
-        )
-        raw = await asyncio.to_thread(self._index.query, query)
-        return self._to_hits(raw, mode="bm25")
-
-    async def hybrid_search(
-        self,
-        query_text: str,
-        query_embedding: list[float],
-        top_k: int = 8,
-    ) -> list[SearchHit]:
-        dense_hits, bm25_hits = await asyncio.gather(
-            self.dense_search(query_embedding, top_k=top_k),
-            self.bm25_search(query_text, top_k=top_k),
-        )
-
-        merged: dict[str, SearchHit] = {hit.id: hit for hit in dense_hits}
-        for bm25_hit in bm25_hits:
-            if bm25_hit.id in merged:
-                merged[bm25_hit.id].bm25_score = bm25_hit.bm25_score
-            else:
-                merged[bm25_hit.id] = bm25_hit
-
-        return sorted(
-            merged.values(),
-            key=lambda item: (item.bm25_score + max(0.0, 1.0 - item.dense_score)),
-            reverse=True,
-        )
-
-    def _to_hits(self, raw: Any, mode: str) -> list[SearchHit]:
-        rows = raw
-        if isinstance(raw, dict) and "results" in raw:
-            rows = raw["results"]
-        if not isinstance(rows, list):
-            return []
-
-        hits: list[SearchHit] = []
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-
-            metadata_raw = row.get("metadata") or "{}"
-            try:
-                metadata = json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
-            except json.JSONDecodeError:
-                metadata = {"raw": metadata_raw}
-
-            score = float(
-                row.get("score")
-                or row.get("vector_distance")
-                or row.get("__score")
-                or 0.0
+            self._embedder = HFTextVectorizer(model=self.settings.EMBED_MODEL)
+            self._index = AsyncSearchIndex.from_existing(
+                name=self.settings.REDIS_INDEX_NAME,
+                redis_url=self.settings.REDIS_URL,
             )
-            hit = SearchHit(
-                id=str(row.get("id", "unknown")),
-                text=str(row.get("text", "")),
-                metadata=metadata if isinstance(metadata, dict) else {},
-            )
-            if mode == "dense":
-                hit.dense_score = score
-            else:
-                hit.bm25_score = score
-            hits.append(hit)
+            logger.info("RedisVL index conectado: %s", self.settings.REDIS_INDEX_NAME)
+        except Exception:
+            logger.warning("RedisVL no disponible o índice no creado — devolveré [].",
+                           exc_info=True)
+            self._index = None
 
-        return hits
+    async def hybrid_search(self, query: str, top_k: int = 5,
+                            filter_expr: Optional[str] = None) -> List[Dict[str, Any]]:
+        self._try_init()
+        if self._index is None or self._embedder is None or not query:
+            return []
+        try:
+            from redisvl.query import VectorQuery
+            vec = self._embedder.embed(query, as_buffer=True)
+            q = VectorQuery(
+                vector=vec,
+                vector_field_name="embedding",
+                num_results=top_k,
+                return_fields=["text", "title", "source"],
+            )
+            if filter_expr:
+                q.set_filter(filter_expr)
+            result = await self._index.query(q)
+            return [dict(r) for r in result]
+        except Exception:
+            logger.exception("hybrid_search falló")
+            return []
