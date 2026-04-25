@@ -19,6 +19,8 @@ class Settings(BaseSettings):
 
     guardrail_model: str = "gpt-4o-mini"
     summarizer_model: str = "gpt-4o-mini"
+    profiler_model: str = "gpt-4o-mini"
+    supervisor_router_model: str = "gpt-4o-mini"
     litellm_temperature: float = 0.0
     security_violation_message: str = (
         "Security policy violation detected. The request was blocked by the guardrail."
@@ -32,6 +34,9 @@ class Settings(BaseSettings):
     chat_rate_limit: str = "20/minute"
     budget_limit_per_window: int = 20
     budget_window_seconds: int = 60
+    conversational_profile_prefix: str = "conv_profile:"
+
+    analytics_models_dir: str = "app/analytics/models"
 
     mcp_host: str = "localhost"
     mcp_port: int = 8765

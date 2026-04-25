@@ -8,13 +8,18 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.analytics.engine import AnalyticsEngine
 from app.agents.supervisor import build_supervisor_graph
 from app.api.admin.evals import router as admin_evals_router
 from app.api.admin.metrics import router as admin_metrics_router
 from app.api.routes import router as chat_router
 from app.core.checkpointer import close_checkpointer, create_checkpointer
 from app.core.config import get_settings
-from app.core.database import create_redis_client, verify_redis_connection
+from app.core.database import (
+    create_redis_client,
+    set_shared_redis_client,
+    verify_redis_connection,
+)
 from app.core.rate_limit import limiter
 from app.evals.framework import RagasEvaluationRunner
 from app.rag.vector_store import RedisHybridVectorStore
@@ -25,9 +30,19 @@ async def lifespan(application: FastAPI):
     settings = get_settings()
 
     redis_client = create_redis_client(settings)
+    set_shared_redis_client(redis_client)
     redis_ok = await verify_redis_connection(redis_client)
     if not redis_ok and not settings.testing:
+        set_shared_redis_client(None)
+        await redis_client.aclose()
         raise RuntimeError("Unable to connect to Redis during startup")
+
+    analytics_engine = AnalyticsEngine()
+    try:
+        analytics_engine.load_models()
+    except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+        # Keep startup resilient even when model artifacts are missing or invalid.
+        analytics_engine = AnalyticsEngine()
 
     vector_store: RedisHybridVectorStore | None = None
     if not settings.testing:
@@ -49,6 +64,7 @@ async def lifespan(application: FastAPI):
     application.state.settings = settings
     application.state.redis_client = redis_client
     application.state.vector_store = vector_store
+    application.state.analytics_engine = analytics_engine
     application.state.checkpointer = checkpointer
     application.state.checkpointer_context = checkpointer_context
     application.state.graph = graph
@@ -65,6 +81,7 @@ async def lifespan(application: FastAPI):
     finally:
         if vector_store is not None:
             await vector_store.close()
+        set_shared_redis_client(None)
         await redis_client.aclose()
         await close_checkpointer(checkpointer, checkpointer_context)
 

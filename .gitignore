@@ -18,6 +18,10 @@ build/
 dist/
 *.egg-info/
 
+# ML artifacts
+backend/app/analytics/models/*.pkl
+backend/app/analytics/models/*.joblib
+
 # Tool caches
 .pytest_cache/
 .mypy_cache/
