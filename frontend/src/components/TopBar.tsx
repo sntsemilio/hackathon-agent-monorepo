@@ -21,7 +21,7 @@ export function TopBar({ selectedUser, onUserChange, personalizationEnabled, onP
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <img src="C:\Users\jeggs\Downloads\hey-banco-logo.svg" alt="Hey Banco" className="h-8 w-auto" />
+            <img src="/hey-banco-logo.svg" alt="Hey Banco" className="h-8 w-auto" />
           </div>
           <div className="h-6 w-px bg-gray-200 mx-2" />
           <span className="text-sm font-bold text-foreground">
