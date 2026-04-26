@@ -17,11 +17,9 @@ from typing import Any, Dict, List
 logger = logging.getLogger(__name__)
 
 
-# Precios por 1K tokens (input / output) — valores aproximados Anthropic/OpenAI
+# Precios por 1K tokens (input / output) — valores aproximados OpenAI
 DEFAULT_PRICING: Dict[str, tuple[float, float]] = {
     # (input_cost_per_1k, output_cost_per_1k)
-    "anthropic/claude-haiku-4-5": (0.0008, 0.004),
-    "anthropic/claude-sonnet-4-6": (0.003, 0.015),
     "gpt-4o-mini": (0.00015, 0.0006),
     "gpt-4o": (0.005, 0.015),
 }

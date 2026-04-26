@@ -9,12 +9,12 @@ Vars clave:
   FICHA_PREFIX               ficha:
   FICHA_TTL_SECONDS          0   (0 = sin expiración)
   MODELS_DIR                 ./backend/app/analytics/models
-  ANTHROPIC_API_KEY          ...
-  LITELLM_MODEL_PROFILER     anthropic/claude-haiku-4-5
-  LITELLM_MODEL_PLANNER      anthropic/claude-haiku-4-5
-  LITELLM_MODEL_RESPONDER    anthropic/claude-sonnet-4-6
-  LITELLM_MODEL_GUARDRAIL    anthropic/claude-haiku-4-5
-  LITELLM_MODEL_SUMMARIZER   anthropic/claude-haiku-4-5
+  OPENAI_API_KEY             ...
+  LITELLM_MODEL_PROFILER     gpt-4o-mini
+  LITELLM_MODEL_PLANNER      gpt-4o-mini
+  LITELLM_MODEL_RESPONDER    gpt-4o
+  LITELLM_MODEL_GUARDRAIL    gpt-4o-mini
+  LITELLM_MODEL_SUMMARIZER   gpt-4o-mini
 """
 from __future__ import annotations
 
@@ -67,17 +67,17 @@ class Settings(BaseSettings):
     ANALYTICS_MODELS_DIR: Path = Path("app/analytics/models")
 
     # LLMs (LiteLLM router)
-    ANTHROPIC_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
     OLLAMA_API_BASE: str = "http://localhost:11434"
     GUARDRAIL_MODEL: str = "gpt-4o-mini"
     SUMMARIZER_MODEL: str = "gpt-4o-mini"
     PROFILER_MODEL: str = "gpt-4o-mini"
     SUPERVISOR_ROUTER_MODEL: str = "gpt-4o-mini"
-    LITELLM_MODEL_PROFILER: str = "anthropic/claude-haiku-4-5"
-    LITELLM_MODEL_PLANNER: str = "anthropic/claude-haiku-4-5"
-    LITELLM_MODEL_RESPONDER: str = "anthropic/claude-sonnet-4-6"
-    LITELLM_MODEL_GUARDRAIL: str = "anthropic/claude-haiku-4-5"
-    LITELLM_MODEL_SUMMARIZER: str = "anthropic/claude-haiku-4-5"
+    LITELLM_MODEL_PROFILER: str = "gpt-4o-mini"
+    LITELLM_MODEL_PLANNER: str = "gpt-4o-mini"
+    LITELLM_MODEL_RESPONDER: str = "gpt-4o"
+    LITELLM_MODEL_GUARDRAIL: str = "gpt-4o-mini"
+    LITELLM_MODEL_SUMMARIZER: str = "gpt-4o-mini"
     LITELLM_TEMPERATURE: float = 0.0
     LLM_FALLBACK_INPUT_COST_PER_1K: float = 0.001
     LLM_FALLBACK_OUTPUT_COST_PER_1K: float = 0.003
