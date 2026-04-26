@@ -1,3 +1,10 @@
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -5,8 +12,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml ./
-COPY app ./app
+COPY backend/pyproject.toml ./
+COPY backend/app ./app
 
 RUN uv pip install --system --no-cache -e .
 
@@ -24,8 +31,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local /usr/local
-COPY app ./app
-COPY scripts ./scripts
+COPY backend/app ./app
+COPY backend/scripts ./scripts
+COPY --from=frontend-builder /app/frontend/dist ./app/static
 
 EXPOSE 8080
 

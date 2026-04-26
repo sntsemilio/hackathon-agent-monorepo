@@ -10,6 +10,9 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 from app.api.routes import router as chat_router, admin_router, lifespan
 from app.api.ws import router as ws_router
@@ -58,9 +61,24 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(ws_router)
 
-    @app.get("/")
+    @app.get("/api/health")
     async def root():
         return {"service": "havi", "version": "1.0.0", "ok": True}
+
+    # Mount frontend static files
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    if os.path.exists(static_dir):
+        app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+        
+        @app.get("/{full_path:path}")
+        async def serve_frontend(full_path: str):
+            # Resolve to index.html for React Router compatibility, or serve static files
+            path = os.path.abspath(os.path.join(static_dir, full_path))
+            if not path.startswith(os.path.abspath(static_dir)):
+                return FileResponse(os.path.join(static_dir, "index.html"))
+            if os.path.isfile(path):
+                return FileResponse(path)
+            return FileResponse(os.path.join(static_dir, "index.html"))
 
     return app
 
