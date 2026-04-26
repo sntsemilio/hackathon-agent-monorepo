@@ -16,6 +16,9 @@ interface BackendDemoUser {
  * Transform backend user format to frontend DemoUser format
  */
 function transformUser(backendUser: BackendDemoUser): DemoUser {
+  // Look up ficha_mock from FALLBACK_USERS to preserve segmentation data
+  const fallbackUser = FALLBACK_USERS.find(u => u.user_id === backendUser.user_id)
+
   return {
     id: backendUser.user_id,
     user_id: backendUser.user_id,
@@ -27,6 +30,7 @@ function transformUser(backendUser: BackendDemoUser): DemoUser {
     theme_color: '#00C389',
     sample_questions: backendUser.sample_questions.map(text => ({ text })),
     questions: backendUser.sample_questions.map(text => ({ text })),
+    ficha_mock: fallbackUser?.ficha_mock,
   }
 }
 
