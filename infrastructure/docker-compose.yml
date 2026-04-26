@@ -17,25 +17,21 @@ services:
     env_file:
       - ../.env
     environment:
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      ANALYTICS_MODELS_DIR: /app/analytics/models
-      FICHA_PREFIX: "ficha:"
-      FICHA_TTL_SECONDS: 86400
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: 8000
     depends_on:
       redis:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "8000:8000"
 
   frontend:
     build:
-      context: ../frontend
+      context: ../frontend-demo
       dockerfile: Dockerfile
-    environment:
-      BACKEND_STREAM_URL: http://backend:8080/chat/stream
-      BACKEND_API_URL: http://backend:8080
     depends_on:
       backend:
         condition: service_started
     ports:
-      - "8081:8081"
+      - "3000:3000"

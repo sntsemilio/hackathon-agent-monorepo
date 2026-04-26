@@ -1,0 +1,184 @@
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Sparkles, MessageCircle, BarChart3 } from 'lucide-react'
+import { DEMO_USERS } from './lib/users'
+import { useSSE } from './hooks/useSSE'
+import { ChatPanel } from './components/chat/ChatPanel'
+import { FichaSidebar } from './components/ficha/FichaSidebar'
+import { TracePanel } from './components/trace/TracePanel'
+import { UserPicker } from './components/common/UserPicker'
+import { TogglePersonalization } from './components/common/TogglePersonalization'
+import { ObsDashboard } from './components/obs/ObsDashboard'
+import LoginScreen from './components/login/LoginScreen'
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [selectedUserIdx, setSelectedUserIdx] = useState(0)
+  const [personalized, setPersonalized] = useState(true)
+  const [activeView, setActiveView] = useState<'chat' | 'obs'>('chat')
+  const { messages, currentTrace, ficha, isStreaming, sendMessage, clearMessages } = useSSE()
+
+  const currentUser = DEMO_USERS[selectedUserIdx]
+
+  const handleSend = (message: string) => {
+    sendMessage(message, personalized ? currentUser.user_id : null)
+  }
+
+  const handleUserChange = (idx: number) => {
+    setSelectedUserIdx(idx)
+    clearMessages()
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onEnter={() => setIsAuthenticated(true)} />
+  }
+
+  return (
+    <div className="h-screen w-screen flex flex-col bg-[#0D1117] overflow-hidden">
+      {/* Header */}
+      <header className="h-14 px-5 flex items-center justify-between bg-[#0D1117] border-b border-[#21262D] shrink-0" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.30)' }}>
+        <div className="flex items-center gap-6">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 select-none">
+            <div
+              className="w-8 h-8 rounded-[10px] flex items-center justify-center relative flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #00C389 0%, #00A074 100%)', boxShadow: '0 4px 12px rgba(0,195,137,0.30)' }}
+            >
+              <Sparkles size={18} strokeWidth={2.2} className="text-white" />
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-extrabold text-[18px] tracking-tighter text-white">havi</span>
+              <span className="text-[#00C389] text-[15px] font-bold leading-none">✦</span>
+              <span className="text-[12px] font-medium text-[#8B949E] tracking-tighter">hey banco</span>
+            </div>
+          </div>
+
+          {/* Nav Tabs */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setActiveView('chat')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all ${
+                activeView === 'chat'
+                  ? 'bg-[#00C389] text-[#0D1117]'
+                  : 'bg-[#161B22] text-[#8B949E] hover:text-[#E2E8F0]'
+              }`}
+            >
+              <MessageCircle size={13} />
+              Chat
+            </button>
+            <button
+              onClick={() => setActiveView('obs')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all ${
+                activeView === 'obs'
+                  ? 'bg-[#00C389] text-[#0D1117]'
+                  : 'bg-[#161B22] text-[#8B949E] hover:text-[#E2E8F0]'
+              }`}
+            >
+              <BarChart3 size={13} />
+              Obs
+            </button>
+          </div>
+
+          {/* Datathon Badge */}
+          <div className="hidden md:flex items-center gap-1 h-7 px-2.5 rounded-full" style={{ background: 'rgba(0,195,137,0.10)', border: '1px solid rgba(0,195,137,0.30)' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00C389] animate-pulse" />
+            <span className="text-[10.5px] font-semibold tracking-wider text-[#00C389]">DATATHON 2026</span>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2.5">
+          {activeView === 'chat' && (
+            <>
+              <TogglePersonalization enabled={personalized} onToggle={setPersonalized} />
+              <div className="w-px h-6 bg-[#21262D]" />
+            </>
+          )}
+          {activeView === 'chat' && <UserPicker users={DEMO_USERS} selectedIdx={selectedUserIdx} onChange={handleUserChange} />}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex flex-1 min-h-0">
+        <AnimatePresence mode="wait">
+          {activeView === 'chat' ? (
+            <motion.div
+              key="chat-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-1 min-h-0"
+            >
+              {/* Trace Panel */}
+              <TracePanel trace={currentTrace} isStreaming={isStreaming} />
+
+              {/* Chat Panel */}
+              <main className="flex-1 min-w-0">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentUser.user_id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="h-full"
+                  >
+                    <ChatPanel
+                      messages={messages}
+                      isStreaming={isStreaming}
+                      onSend={handleSend}
+                      sampleQuestions={currentUser.sample_questions}
+                      userName={currentUser.name}
+                      userAvatar={currentUser.avatar}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </main>
+
+              {/* Ficha Sidebar */}
+              {personalized && (
+                <motion.aside
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-[320px] shrink-0 overflow-y-auto"
+                >
+                  <FichaSidebar ficha={ficha} personalized={personalized} user={currentUser} />
+                </motion.aside>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="obs-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 min-h-0"
+            >
+              <ObsDashboard />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Footer */}
+      <footer className="h-8 px-5 flex items-center justify-between bg-[#0D1117] border-t border-[#21262D] shrink-0">
+        <div className="flex items-center gap-3 text-[10.5px] text-[#6B7280]">
+          <span className="font-mono">datathon · 2026</span>
+          <div className="w-0.5 h-0.5 rounded-full bg-[#21262D]" />
+          <span>Havi v2.4.1</span>
+        </div>
+        <div className="flex items-center gap-3 text-[10.5px] text-[#6B7280]">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00C389]" />
+            <span>SSE conectado</span>
+          </div>
+          <div className="font-mono">/chat/stream</div>
+        </div>
+      </footer>
+    </div>
+  )
+}

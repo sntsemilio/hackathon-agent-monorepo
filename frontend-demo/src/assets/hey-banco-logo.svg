@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Wordmark "hey" -->
+  <!-- h -->
+  <path d="M10 8 L10 42 M10 24 Q10 18 20 18 Q30 18 30 26 L30 42"
+        stroke="#00C389" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- e -->
+  <path d="M38 30 Q38 18 50 18 Q62 18 62 30 Q62 30 38 30 M38 30 Q38 44 50 44 Q58 44 62 38"
+        stroke="#00C389" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- y -->
+  <path d="M70 18 L82 36 M94 18 L82 36 L78 52"
+        stroke="#00C389" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- separador -->
+  <rect x="108" y="12" width="2" height="36" rx="1" fill="#21262D"/>
+  <!-- "banco" en texto pequeño -->
+  <text x="118" y="26" font-family="Inter, sans-serif" font-size="10"
+        font-weight="600" fill="#8B949E" letter-spacing="0.08em">BANCO</text>
+  <!-- dot verde decorativo -->
+  <circle cx="118" cy="36" r="3" fill="#00C389"/>
+</svg>

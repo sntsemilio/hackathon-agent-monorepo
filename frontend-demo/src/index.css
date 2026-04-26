@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00C389 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #00C389;
+  border-radius: 20px;
+}
+
+@keyframes typewriter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+.gradient-hey {
+  background: linear-gradient(135deg, #E6F9F3 0%, #F0EDFF 50%, #FFF3EB 100%);
+}
+
+.gradient-hey-dark {
+  background: linear-gradient(135deg, #00C389 0%, #6B4EFF 100%);
+}
+
+body {
+  @apply bg-[#0D1117] font-sans text-[#E2E8F0] antialiased;
+}
+
+.typing-cursor::after {
+  content: '▊';
+  animation: pulse-dot 1s ease-in-out infinite;
+  @apply text-[#00C389] ml-0.5;
+}
+
+/* ── Havi Animations ─────────────────────────── */
+@keyframes messageIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes traceNodeIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes typingDot {
+  0%, 60%, 100% { transform: scale(0.8); opacity: 0.4; }
+  30%           { transform: scale(1.2); opacity: 1; }
+}
+@keyframes rowSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #161B22 25%, #1C2128 50%, #161B22 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── Nav tabs (vista chat / observabilidad) ─── */
+.view-tab { transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1); }
+.view-tab.active {
+  background: #00C389;
+  color: #0D1117;
+}
+
+/* ── Focus ring global ───────────────────────── */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,195,137,0.25);
+}
