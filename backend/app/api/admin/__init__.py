@@ -1,6 +1,6 @@
 """
-backend/app/api/admin.py
-========================
+backend/app/api/admin/__init__.py
+==================================
 
 Simplified admin metrics and evals endpoints (no auth, suitable for demo/datathon).
 Tracks request metrics in memory and exposes them via REST APIs.
@@ -110,3 +110,6 @@ async def get_evals() -> Dict[str, Any]:
         "test_cases_passed": 45,
         "test_cases_failed": 5,
     }
+
+
+__all__ = ["router", "record_request"]
