@@ -17,13 +17,16 @@ interface BackendDemoUser {
  */
 function transformUser(backendUser: BackendDemoUser): DemoUser {
   return {
+    id: backendUser.user_id,
     user_id: backendUser.user_id,
     name: backendUser.name,
     avatar: backendUser.avatar,
     description: backendUser.description,
+    segment_labels: backendUser.segment_labels,
     segment: backendUser.segment_labels[0] || 'default',
-    theme_color: '#00C389', // default green theme
+    theme_color: '#00C389',
     sample_questions: backendUser.sample_questions.map(text => ({ text })),
+    questions: backendUser.sample_questions.map(text => ({ text })),
   }
 }
 

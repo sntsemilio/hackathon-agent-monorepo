@@ -39,9 +39,10 @@ export function useSSE() {
     setCurrentTrace([])
 
     const userMsg: Message = {
+      id: `msg-${Date.now()}-${Math.random()}`,
       role: 'user',
       content: message,
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
     }
     setMessages(prev => [...prev, userMsg])
 
@@ -134,11 +135,12 @@ export function useSSE() {
       // Typewriter effect
       if (finalResponse) {
         const assistantMsg: Message = {
+          id: `msg-${Date.now()}-${Math.random()}`,
           role: 'assistant',
           content: '',
-          timestamp: Date.now(),
+          timestamp: new Date().toISOString(),
           action_cards: actionCards.length > 0 ? actionCards : undefined,
-          trace: traceSpans,
+          node_traces: traceSpans,
         }
         setMessages(prev => [...prev, assistantMsg])
 
@@ -158,9 +160,10 @@ export function useSSE() {
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         const errMsg: Message = {
+          id: `msg-${Date.now()}-${Math.random()}`,
           role: 'assistant',
           content: `Lo siento, hubo un error al conectar con el servidor. Verifica que el backend esté corriendo en ${API_BASE}.`,
-          timestamp: Date.now(),
+          timestamp: new Date().toISOString(),
         }
         setMessages(prev => [...prev, errMsg])
       }
