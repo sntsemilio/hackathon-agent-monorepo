@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react'
+import { DemoUser, SampleQuestion } from '../types'
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-export interface DemoUser {
+interface BackendDemoUser {
   user_id: string
   name: string
   avatar: string
   description: string
   segment_labels: string[]
   sample_questions: string[]
+}
+
+/**
+ * Transform backend user format to frontend DemoUser format
+ */
+function transformUser(backendUser: BackendDemoUser): DemoUser {
+  return {
+    user_id: backendUser.user_id,
+    name: backendUser.name,
+    avatar: backendUser.avatar,
+    description: backendUser.description,
+    segment: backendUser.segment_labels[0] || 'default',
+    theme_color: '#00C389', // default green theme
+    sample_questions: backendUser.sample_questions.map(text => ({ text })),
+  }
 }
 
 /**
@@ -28,7 +44,8 @@ export function useUsers() {
 
         const data = await res.json()
         if (data.users && Array.isArray(data.users)) {
-          setUsers(data.users)
+          const transformedUsers = data.users.map(transformUser)
+          setUsers(transformedUsers)
           setError(null)
         }
       } catch (err) {
@@ -47,7 +64,7 @@ export function useUsers() {
 
 /**
  * Fallback demo users for when backend is unavailable.
- * Same data as backend/app/api/users.py DEMO_USERS.
+ * Same data as backend/app/api/users.py DEMO_USERS, transformed to frontend format.
  */
 const FALLBACK_USERS: DemoUser[] = [
   {
@@ -55,12 +72,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Carla Mendoza',
     avatar: '👩‍💻',
     description: 'Actividad atípica · Presión financiera',
-    segment_labels: ['actividad_atipica_alerta', 'presion_financiera'],
+    segment: 'actividad_atipica_alerta',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Por qué me bloquearon una transacción?',
-      '¿Cómo puedo desbloquear mi tarjeta?',
-      '¿Cuál es mi saldo actual?',
-      '¿Mis datos están seguros?',
+      { text: '¿Por qué me bloquearon una transacción?' },
+      { text: '¿Cómo puedo desbloquear mi tarjeta?' },
+      { text: '¿Cuál es mi saldo actual?' },
+      { text: '¿Mis datos están seguros?' },
     ],
   },
   {
@@ -68,12 +86,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Javier López',
     avatar: '👨‍💼',
     description: 'Profesional · Inversor activo',
-    segment_labels: ['profesional_prospero_inversor', 'activo_saludable'],
+    segment: 'profesional_prospero_inversor',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Cuál es mi rendimiento en inversiones este mes?',
-      '¿Qué productos de inversión me recomiendas?',
-      '¿Cuál es el GAT real de mi cuenta?',
-      '¿Puedo abrir un fondo indexado?',
+      { text: '¿Cuál es mi rendimiento en inversiones este mes?' },
+      { text: '¿Qué productos de inversión me recomiendas?' },
+      { text: '¿Cuál es el GAT real de mi cuenta?' },
+      { text: '¿Puedo abrir un fondo indexado?' },
     ],
   },
   {
@@ -81,12 +100,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Ana Torres',
     avatar: '👩‍🎓',
     description: 'Joven digital · Hey Pro',
-    segment_labels: ['joven_digital_hey_pro', 'en_construccion_crediticia'],
+    segment: 'joven_digital_hey_pro',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Cuánto cashback acumulé este mes?',
-      '¿Qué hay de nuevo en Hey Shop?',
-      '¿Cómo activo CoDi?',
-      '¿Puedo subir mi límite de crédito?',
+      { text: '¿Cuánto cashback acumulé este mes?' },
+      { text: '¿Qué hay de nuevo en Hey Shop?' },
+      { text: '¿Cómo activo CoDi?' },
+      { text: '¿Puedo subir mi límite de crédito?' },
     ],
   },
   {
@@ -94,12 +114,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Roberto Sánchez',
     avatar: '👨‍🔧',
     description: 'Cliente estable · Perfil promedio',
-    segment_labels: ['cliente_promedio_estable', 'activo_saludable'],
+    segment: 'cliente_promedio_estable',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Cuál es mi saldo?',
-      '¿Puedo hacer una transferencia?',
-      '¿Qué beneficios tengo con mi cuenta?',
-      '¿Cómo activo Hey Pro?',
+      { text: '¿Cuál es mi saldo?' },
+      { text: '¿Puedo hacer una transferencia?' },
+      { text: '¿Qué beneficios tengo con mi cuenta?' },
+      { text: '¿Cómo activo Hey Pro?' },
     ],
   },
   {
@@ -107,12 +128,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'María González',
     avatar: '👩‍💼',
     description: 'Estrés financiero · Necesita apoyo',
-    segment_labels: ['usuario_estres_financiero', 'presion_financiera'],
+    segment: 'usuario_estres_financiero',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Puedo reestructurar mi deuda?',
-      '¿Cuánto debo en total?',
-      '¿Hay algún plan de pagos disponible?',
-      '¿Puedo pausar un pago?',
+      { text: '¿Puedo reestructurar mi deuda?' },
+      { text: '¿Cuánto debo en total?' },
+      { text: '¿Hay algún plan de pagos disponible?' },
+      { text: '¿Puedo pausar un pago?' },
     ],
   },
   {
@@ -120,12 +142,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Carlos Mendivil',
     avatar: '🧑‍💻',
     description: 'Usuario básico · Nuevo cliente',
-    segment_labels: ['usuario_basico_bajo_enganche', 'solido_sin_credito'],
+    segment: 'usuario_basico_bajo_enganche',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Cómo funciona la cuenta Hey?',
-      '¿Cómo deposito dinero?',
-      '¿Hay comisiones?',
-      '¿Puedo solicitar una tarjeta de crédito?',
+      { text: '¿Cómo funciona la cuenta Hey?' },
+      { text: '¿Cómo deposito dinero?' },
+      { text: '¿Hay comisiones?' },
+      { text: '¿Puedo solicitar una tarjeta de crédito?' },
     ],
   },
   {
@@ -133,12 +156,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Daniela Ruiz',
     avatar: '👩‍🎨',
     description: 'Empresaria · Alto volumen',
-    segment_labels: ['empresario_alto_volumen', 'activo_saludable'],
+    segment: 'empresario_alto_volumen',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Cómo configuro nómina para mi empresa?',
-      '¿Puedo facturar desde Hey?',
-      '¿Hay crédito PYME disponible?',
-      '¿Cómo muevo grandes volúmenes?',
+      { text: '¿Cómo configuro nómina para mi empresa?' },
+      { text: '¿Puedo facturar desde Hey?' },
+      { text: '¿Hay crédito PYME disponible?' },
+      { text: '¿Cómo muevo grandes volúmenes?' },
     ],
   },
   {
@@ -146,12 +170,13 @@ const FALLBACK_USERS: DemoUser[] = [
     name: 'Luis Fernández',
     avatar: '👨‍🌾',
     description: 'Ahorrador · Construcción crediticia',
-    segment_labels: ['en_construccion_crediticia', 'consumidor_digital_ocio'],
+    segment: 'en_construccion_crediticia',
+    theme_color: '#00C389',
     sample_questions: [
-      '¿Cómo mejoro mi score buró?',
-      '¿Cuánto he ahorrado este mes?',
-      '¿Me conviene una tarjeta garantizada?',
-      '¿Cuál es mi historial de pagos?',
+      { text: '¿Cómo mejoro mi score buró?' },
+      { text: '¿Cuánto he ahorrado este mes?' },
+      { text: '¿Me conviene una tarjeta garantizada?' },
+      { text: '¿Cuál es mi historial de pagos?' },
     ],
   },
 ]
