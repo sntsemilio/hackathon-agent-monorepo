@@ -34,31 +34,31 @@ export default function LoginScreen({ onEnter }: LoginScreenProps) {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-        className="relative z-10 flex flex-col items-center gap-8 max-w-sm w-full px-6"
+        className="relative z-10 flex flex-col items-center gap-10 w-full px-6 max-w-xs"
       >
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-3">
+        {/* Logo compuesto */}
+        <div className="flex flex-col items-center gap-3 w-full">
           <img
             src="/hey-banco-logo.svg"
             alt="Hey Banco"
-            className="h-12 w-auto"
-            onError={(e) => {
-              // fallback inline si el SVG no carga
-              (e.target as HTMLImageElement).style.display = 'none'
-            }}
+            className="h-14 w-auto"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
-          {/* Fallback texto si no hay SVG */}
-          <span className="text-3xl font-extrabold tracking-tight" style={{ color: '#00C389' }}>
-            havi
-          </span>
-          <span className="text-xs font-semibold tracking-[0.15em] uppercase"
-                style={{ color: '#484F58' }}>
-            by hey banco · datathon 2026
+          <div className="flex items-center gap-1.5">
+            <span className="text-3xl font-extrabold tracking-tight" style={{ color: '#00C389', fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em' }}>
+              havi
+            </span>
+            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,195,137,0.15)', color: '#00C389', letterSpacing: '0.05em' }}>
+              ✦
+            </span>
+          </div>
+          <span className="text-xs font-semibold tracking-[0.12em] uppercase" style={{ color: '#484F58' }}>
+            by Hey Banco · Datathon 2026
           </span>
         </div>
 
         {/* Separador */}
-        <div className="w-16 h-px" style={{ background: '#21262D' }}/>
+        <div className="w-12 h-px" style={{ background: '#21262D' }}/>
 
         {/* Descripción */}
         <div className="text-center">
@@ -67,15 +67,16 @@ export default function LoginScreen({ onEnter }: LoginScreenProps) {
           </p>
         </div>
 
-        {/* Botón de entrada */}
+        {/* Botón de entrada — contenido, NO full-width */}
         <button
           onClick={handleEnter}
           disabled={isLoading}
-          className="w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200 relative overflow-hidden"
+          className="w-full py-3 px-8 rounded-xl font-semibold text-sm transition-all duration-200 relative overflow-hidden"
           style={{
-            background: isLoading ? '#00A074' : '#00C389',
+            background: isLoading ? '#00A074' : 'linear-gradient(135deg, #00C389, #00A074)',
             color: '#0D1117',
-            boxShadow: '0 4px 14px rgba(0,195,137,0.30)'
+            boxShadow: '0 4px 14px rgba(0,195,137,0.35)',
+            borderRadius: '12px'
           }}
         >
           {isLoading ? (

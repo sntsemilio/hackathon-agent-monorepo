@@ -12,6 +12,7 @@ const KpiCard = ({ title, items, accentColor = '#00C389', bgGradient }: KpiCardP
     className="rounded-xl border border-[#21262D] p-5"
     style={{
       background: bgGradient || '#161B22',
+      borderTop: `2px solid ${accentColor}`
     }}
   >
     <div className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: accentColor }}>

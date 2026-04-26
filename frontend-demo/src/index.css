@@ -43,13 +43,17 @@
 }
 
 body {
-  @apply bg-[#0D1117] font-sans text-[#E2E8F0] antialiased;
+  background-color: #0D1117;
+  font-family: Inter, system-ui, sans-serif;
+  color: #E2E8F0;
+  -webkit-font-smoothing: antialiased;
 }
 
 .typing-cursor::after {
   content: '▊';
   animation: pulse-dot 1s ease-in-out infinite;
-  @apply text-[#00C389] ml-0.5;
+  color: #00C389;
+  margin-left: 0.125rem;
 }
 
 /* ── Havi Animations ─────────────────────────── */
@@ -95,4 +99,33 @@ body {
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(0,195,137,0.25);
+  border-radius: 8px;
+}
+
+/* ── Scrollbar personalizado ────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #21262D;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #30363D;
+}
+
+/* ── Utilidades adicionales ────────────────── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, MessageCircle, BarChart3 } from 'lucide-react'
 import { useSSE } from './hooks/useSSE'
@@ -6,26 +6,38 @@ import { useUsers } from './hooks/useUsers'
 import { ChatPanel } from './components/chat/ChatPanel'
 import { FichaSidebar } from './components/ficha/FichaSidebar'
 import { TracePanel } from './components/trace/TracePanel'
-import { UserPicker } from './components/common/UserPicker'
-import { TogglePersonalization } from './components/common/TogglePersonalization'
 import { ObsDashboard } from './components/obs/ObsDashboard'
+import { NotificationToast } from './components/notifications/NotificationToast'
 import LoginScreen from './components/login/LoginScreen'
+
+interface DemoUser {
+  id: string
+  name: string
+  user_id: string
+  avatar: string
+  segment_labels: string[]
+}
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedUserIdx, setSelectedUserIdx] = useState(0)
-  const [personalized, setPersonalized] = useState(true)
+  const [personalizationEnabled, setPersonalizationEnabled] = useState(true)
   const [activeView, setActiveView] = useState<'chat' | 'obs'>('chat')
+
   const { messages, currentTrace, ficha, profile, isStreaming, sendMessage, clearMessages } = useSSE()
   const { users } = useUsers()
 
-  const currentUser = users[selectedUserIdx]
+  const selectedUser = useMemo(
+    () => (users?.[selectedUserIdx] as DemoUser) || null,
+    [users, selectedUserIdx]
+  )
 
   const handleSend = (message: string) => {
-    sendMessage(message, personalized ? currentUser.user_id : null)
+    sendMessage(message, personalizationEnabled ? selectedUser?.user_id : null)
   }
 
-  const handleUserChange = (idx: number) => {
+  const handleUserChange = (userId: string) => {
+    const idx = users?.findIndex((u) => u.id === userId) ?? 0
     setSelectedUserIdx(idx)
     clearMessages()
   }
@@ -34,46 +46,82 @@ export default function App() {
     return <LoginScreen onEnter={() => setIsAuthenticated(true)} />
   }
 
+  if (!selectedUser) {
+    return <div className="flex items-center justify-center h-screen bg-[#0D1117]">Loading...</div>
+  }
+
+  const mockSpeech = {
+    transcript: '',
+    isListening: false,
+    startListening: () => {},
+    stopListening: () => {}
+  }
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#0D1117] overflow-hidden">
+    <div className="min-h-screen bg-[#0D1117] flex flex-col font-sans overflow-hidden">
       {/* Header */}
       <header className="h-14 px-5 flex items-center justify-between bg-[#0D1117] border-b border-[#21262D] shrink-0" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.30)' }}>
         <div className="flex items-center gap-6">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 select-none">
-            <div
-              className="w-8 h-8 rounded-[10px] flex items-center justify-center relative flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00C389 0%, #00A074 100%)', boxShadow: '0 4px 12px rgba(0,195,137,0.30)' }}
-            >
-              <Sparkles size={18} strokeWidth={2.2} className="text-white" />
-            </div>
+          {/* Logo & Branding */}
+          <div className="flex items-center gap-2 select-none">
+            <img
+              src="/hey-banco-logo.svg"
+              alt="Hey Banco"
+              className="h-5 w-auto object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
             <div className="flex items-baseline gap-1.5">
-              <span className="font-extrabold text-[18px] tracking-tighter text-white">havi</span>
-              <span className="text-[#00C389] text-[15px] font-bold leading-none">✦</span>
-              <span className="text-[12px] font-medium text-[#8B949E] tracking-tighter">hey banco</span>
+              <span className="font-extrabold text-[15px] tracking-tighter text-white">havi</span>
+              <span className="text-[#00C389] text-xs font-bold px-1 py-0.5 rounded" style={{ background: 'rgba(0,195,137,0.15)' }}>
+                ✦
+              </span>
             </div>
+            {/* Separator */}
+            <div className="w-px h-5 bg-[#21262D] ml-1" />
           </div>
 
           {/* Nav Tabs */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setActiveView('chat')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all ${
-                activeView === 'chat'
-                  ? 'bg-[#00C389] text-[#0D1117]'
-                  : 'bg-[#161B22] text-[#8B949E] hover:text-[#E2E8F0]'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200`}
+              style={{
+                borderRadius: '8px',
+                background: activeView === 'chat' ? '#00C389' : 'transparent',
+                color: activeView === 'chat' ? '#0D1117' : '#8B949E'
+              }}
+              onMouseEnter={(e) => {
+                if (activeView !== 'chat') {
+                  (e.currentTarget as HTMLElement).style.color = '#E2E8F0'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeView !== 'chat') {
+                  (e.currentTarget as HTMLElement).style.color = '#8B949E'
+                }
+              }}
             >
               <MessageCircle size={13} />
               Chat
             </button>
             <button
               onClick={() => setActiveView('obs')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all ${
-                activeView === 'obs'
-                  ? 'bg-[#00C389] text-[#0D1117]'
-                  : 'bg-[#161B22] text-[#8B949E] hover:text-[#E2E8F0]'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200`}
+              style={{
+                borderRadius: '8px',
+                background: activeView === 'obs' ? '#00C389' : 'transparent',
+                color: activeView === 'obs' ? '#0D1117' : '#8B949E'
+              }}
+              onMouseEnter={(e) => {
+                if (activeView !== 'obs') {
+                  (e.currentTarget as HTMLElement).style.color = '#E2E8F0'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeView !== 'obs') {
+                  (e.currentTarget as HTMLElement).style.color = '#8B949E'
+                }
+              }}
             >
               <BarChart3 size={13} />
               Obs
@@ -88,91 +136,103 @@ export default function App() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-4">
           {activeView === 'chat' && (
             <>
-              <TogglePersonalization enabled={personalized} onToggle={setPersonalized} />
+              <label className="flex items-center gap-2 text-sm text-[#8B949E] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={personalizationEnabled}
+                  onChange={(e) => setPersonalizationEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded bg-[#161B22] border border-[#21262D] cursor-pointer"
+                />
+                Personalización
+              </label>
               <div className="w-px h-6 bg-[#21262D]" />
+              <select
+                value={selectedUser.id}
+                onChange={(e) => handleUserChange(e.target.value)}
+                className="px-3 py-1.5 rounded-full bg-[#161B22] border border-[#21262D] text-[12px] text-[#E2E8F0] cursor-pointer hover:border-[#00C389] transition-colors"
+              >
+                {users?.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
             </>
           )}
-          {activeView === 'chat' && <UserPicker users={users} selectedIdx={selectedUserIdx} onChange={handleUserChange} />}
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 min-h-0">
-        <AnimatePresence mode="wait">
-          {activeView === 'chat' ? (
-            <motion.div
-              key="chat-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-1 min-h-0"
-            >
-              {/* Trace Panel */}
-              <TracePanel trace={currentTrace} isStreaming={isStreaming} profile={profile} />
+      <main className="flex-1 overflow-hidden">
+        <div className={`h-full grid gap-0 ${personalizationEnabled ? 'lg:grid-cols-[320px_1fr_340px]' : 'lg:grid-cols-[1fr_340px]'}`}>
+          <AnimatePresence mode="wait">
+            {activeView === 'chat' ? (
+              <>
+                {/* Left Column: Ficha Sidebar (visible when personalization ON) */}
+                {personalizationEnabled && (
+                  <FichaSidebar
+                    user={selectedUser}
+                    ficha={ficha}
+                    visible={personalizationEnabled}
+                  />
+                )}
 
-              {/* Chat Panel */}
-              <main className="flex-1 min-w-0">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentUser.user_id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="h-full"
-                  >
-                    <ChatPanel
-                      messages={messages}
-                      isStreaming={isStreaming}
-                      onSend={handleSend}
-                      sampleQuestions={currentUser.sample_questions}
-                      userName={currentUser.name}
-                      userAvatar={currentUser.avatar}
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </main>
+                {/* Center Column: Chat */}
+                <motion.section
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full flex flex-col overflow-hidden relative border-r border-[#21262D]"
+                >
+                  <ChatPanel
+                    user={selectedUser}
+                    messages={messages}
+                    isStreaming={isStreaming}
+                    onSendMessage={handleSend}
+                    pendingToolCall={null}
+                    onConfirmToolCall={() => {}}
+                    speech={mockSpeech}
+                  />
+                </motion.section>
 
-              {/* Ficha Sidebar */}
-              {personalized && (
+                {/* Right Column: Trace Panel */}
                 <motion.aside
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="w-[320px] shrink-0 overflow-y-auto"
+                  className="border-l border-[#21262D] bg-[#0D1117] overflow-hidden hidden lg:block"
                 >
-                  <FichaSidebar ficha={ficha} personalized={personalized} user={currentUser} />
+                  <TracePanel trace={currentTrace} isStreaming={isStreaming} profile={profile} />
                 </motion.aside>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="obs-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 min-h-0"
-            >
-              <ObsDashboard />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="col-span-full h-full overflow-hidden"
+              >
+                <ObsDashboard />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </main>
 
       {/* Footer */}
-      <footer className="h-8 px-5 flex items-center justify-between bg-[#0D1117] border-t border-[#21262D] shrink-0">
-        <div className="flex items-center gap-3 text-[10.5px] text-[#6B7280]">
+      <footer className="h-8 px-5 flex items-center justify-between bg-[#0D1117] border-t border-[#21262D] shrink-0 text-[10.5px] text-[#6B7280]">
+        <div className="flex items-center gap-3">
           <span className="font-mono">datathon · 2026</span>
           <div className="w-0.5 h-0.5 rounded-full bg-[#21262D]" />
           <span>Havi v2.4.1</span>
         </div>
-        <div className="flex items-center gap-3 text-[10.5px] text-[#6B7280]">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00C389]" />
             <span>SSE conectado</span>

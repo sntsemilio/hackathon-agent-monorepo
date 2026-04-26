@@ -53,7 +53,7 @@ export function ObsDashboard() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-6 space-y-6">
+        <div className="px-6 py-6 space-y-6 pb-8">
           {/* KPI Cards */}
           <KpiCards metrics={metrics} loading={loading} />
 
