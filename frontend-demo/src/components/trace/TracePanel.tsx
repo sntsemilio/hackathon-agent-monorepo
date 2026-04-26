@@ -26,19 +26,19 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
 }
 
 const NODE_CONFIG: Record<string, { icon: string; tone: string; label: string }> = {
-  ficha_injector: { icon: '📋', tone: 'success', label: 'Ficha Injector' },
-  guardrail_check: { icon: '🛡️', tone: 'warning', label: 'Guardrail' },
-  profiler: { icon: '👤', tone: 'info', label: 'Profiler' },
-  plan_research: { icon: '📝', tone: 'purple', label: 'Plan Research' },
-  gather_context: { icon: '🔍', tone: 'info', label: 'Gather Context' },
-  draft_response_gen: { icon: '✍️', tone: 'purple', label: 'Draft Response' },
-  tool_ops: { icon: '🔧', tone: 'success', label: 'Tool Ops' },
-  summarizer: { icon: '📊', tone: 'success', label: 'Summarizer' },
+  ficha_injector: { icon: 'FIC', tone: 'success', label: 'Ficha Injector' },
+  guardrail_check: { icon: 'GRD', tone: 'warning', label: 'Guardrail' },
+  profiler: { icon: 'PRF', tone: 'info', label: 'Profiler' },
+  plan_research: { icon: 'PRS', tone: 'purple', label: 'Plan Research' },
+  gather_context: { icon: 'GTC', tone: 'info', label: 'Gather Context' },
+  draft_response_gen: { icon: 'DRG', tone: 'purple', label: 'Draft Response' },
+  tool_ops: { icon: 'OPS', tone: 'success', label: 'Tool Ops' },
+  summarizer: { icon: 'SUM', tone: 'success', label: 'Summarizer' },
 }
 
 const TraceNode = ({ node, idx, defaultOpen = false }: { node: TraceSpan; idx: number; defaultOpen?: boolean }) => {
   const [open, setOpen] = useState(defaultOpen)
-  const config = NODE_CONFIG[node.node] || { icon: '⚙️', tone: 'neutral', label: node.node }
+  const config = NODE_CONFIG[node.node] || { icon: 'UNK', tone: 'neutral', label: node.node }
   const tone = TONE_STYLES[config.tone] || TONE_STYLES.neutral
   const status = STATUS_BADGE[node.status] || STATUS_BADGE.pending
 
