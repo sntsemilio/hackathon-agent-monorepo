@@ -17,6 +17,16 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
+
+@dataclass
+class SearchHit:
+    id: str
+    text: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    dense_score: float = 0.0
+    bm25_score: float = 0.0
+    rerank_score: float = 0.0
 
 from app.core.config import get_settings
 
