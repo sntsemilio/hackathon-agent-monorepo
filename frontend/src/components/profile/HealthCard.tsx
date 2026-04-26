@@ -24,9 +24,9 @@ export function HealthCard({ ficha }: HealthCardProps) {
       animate={{ rotateY: 0, opacity: 1 }}
       transition={{ duration: 0.6, type: 'spring', bounce: 0.4, delay: 0.2 }}
     >
-      <Card className="border-border bg-background shadow-sm overflow-hidden">
-        <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-sm font-semibold text-foreground">Salud Financiera</CardTitle>
+      <Card className="bg-white border-0 shadow-md rounded-3xl overflow-hidden">
+        <CardHeader className="p-5 pb-0">
+          <CardTitle className="text-sm font-bold text-foreground">Salud Financiera</CardTitle>
         </CardHeader>
         <CardContent className="p-4 flex flex-col items-center justify-center pt-8 pb-6">
           

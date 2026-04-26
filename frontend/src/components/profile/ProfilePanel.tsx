@@ -14,13 +14,13 @@ interface ProfilePanelProps {
 export function ProfilePanel({ user, ficha }: ProfilePanelProps) {
   return (
     <div className="h-full flex flex-col bg-card">
-      <div className="p-4 border-b border-border bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between">
+      <div className="p-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
+          <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
             <UserIcon className="w-4 h-4 text-[var(--hey-primary)]" />
             Client Profile
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-gray-500 mt-1 font-medium">
             Perspectiva 360° en tiempo real
           </p>
         </div>
@@ -30,15 +30,15 @@ export function ProfilePanel({ user, ficha }: ProfilePanelProps) {
         <div className="space-y-6 pb-10">
           
           {/* Main User Info */}
-          <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-background shadow-sm text-center">
+          <div className="flex flex-col items-center justify-center p-6 rounded-3xl bg-white shadow-md text-center border-0">
             <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white shadow-inner mb-3"
-              style={{ backgroundColor: user.color }}
+              className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-extrabold text-[var(--hey-primary)] shadow-sm mb-4"
+              style={{ background: 'linear-gradient(135deg, #e6f9f0 0%, #c1f0db 100%)' }}
             >
               {user.name.charAt(0)}
             </div>
-            <h3 className="font-bold text-lg text-foreground">{user.name}</h3>
-            <p className="text-xs text-muted-foreground">{user.id}</p>
+            <h3 className="font-extrabold text-xl text-foreground">{user.name}</h3>
+            <p className="text-sm text-gray-500 font-medium mt-1">{user.id}</p>
           </div>
 
           {!ficha ? (

@@ -23,9 +23,9 @@ export function BehavioralCard({ ficha, color }: BehavioralCardProps) {
       animate={{ rotateY: 0, opacity: 1 }}
       transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
     >
-      <Card className="border-border bg-background shadow-sm overflow-hidden">
-        <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-foreground">Perfil Conductual</CardTitle>
+      <Card className="bg-white border-0 shadow-md rounded-3xl overflow-hidden">
+        <CardHeader className="p-5 pb-0 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-bold text-foreground">Perfil Conductual</CardTitle>
           <span 
             className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-border font-bold"
             style={{ color: color, borderColor: `${color}40`, backgroundColor: `${color}10` }}

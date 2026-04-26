@@ -45,47 +45,44 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%; /* #0a0a0a */
-    --foreground: 0 0% 98%;
+    --background: 210 40% 98%; /* #F9FAFB */
+    --foreground: 0 0% 9%;
 
-    --card: 0 0% 10%; /* #1a1a1a */
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 9%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
 
     --primary: 162 100% 38%; /* #00C389 */
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
 
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 16%; /* #2a2a2a */
-    --input: 0 0% 16%;
+    --border: 0 0% 95%; /* Make default borders very light or invisible */
+    --input: 0 0% 90%;
     --ring: 162 100% 38%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     --hey-primary: #00C389;
-    --hey-bg: #0a0a0a;
-    --hey-card: #1a1a1a;
-    --hey-border: #2a2a2a;
+    --hey-bg: #F9FAFB;
+    --hey-card: #FFFFFF;
+    --hey-border: transparent;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -103,10 +100,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--hey-border);
+  background: #E5E7EB; /* gray-200 */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: #D1D5DB; /* gray-300 */
 }

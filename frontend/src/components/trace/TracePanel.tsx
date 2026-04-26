@@ -19,12 +19,12 @@ const PIPELINE_NODES = [
 export function TracePanel({ traces }: TracePanelProps) {
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-border bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-        <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
+      <div className="p-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[var(--hey-primary)] animate-pulse" />
           Agent Trace
         </h2>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-gray-500 mt-1 font-medium">
           Auditoría de nodos en tiempo real
         </p>
       </div>

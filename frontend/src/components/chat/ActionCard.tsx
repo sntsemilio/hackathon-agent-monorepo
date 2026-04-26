@@ -17,7 +17,7 @@ export function ActionCard({ card }: ActionCardProps) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => setModalOpen(true)}
-        className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/80 hover:bg-muted/50 hover:border-border/80 cursor-pointer transition-colors shadow-sm"
+        className="flex items-center justify-between p-4 rounded-2xl border-0 bg-white hover:bg-gray-50 cursor-pointer transition-all shadow-sm hover:shadow-md"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[var(--hey-primary)]/10 flex items-center justify-center text-[var(--hey-primary)]">

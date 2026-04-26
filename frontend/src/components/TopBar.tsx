@@ -20,11 +20,11 @@ export function TopBar({ selectedUser, onUserChange, personalizationEnabled, onP
       
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
-          <div className="font-bold text-xl tracking-tight text-foreground flex items-center gap-2">
-            <span className="text-[var(--hey-primary)]">Hey</span> Banco
+          <div className="flex items-center gap-2">
+            <img src="C:\Users\jeggs\Downloads\hey-banco-logo.svg" alt="Hey Banco" className="h-8 w-auto" />
           </div>
-          <div className="h-6 w-px bg-border mx-2" />
-          <span className="text-sm font-medium text-muted-foreground">
+          <div className="h-6 w-px bg-gray-200 mx-2" />
+          <span className="text-sm font-bold text-foreground">
             Havi Agent Console
           </span>
         </div>
@@ -48,17 +48,17 @@ export function TopBar({ selectedUser, onUserChange, personalizationEnabled, onP
           </div>
 
           <Select value={selectedUser.id} onValueChange={onUserChange}>
-            <SelectTrigger className="w-[280px] bg-card border-border">
+            <SelectTrigger className="w-[280px] bg-white border-0 shadow-sm rounded-full">
               <SelectValue placeholder="Select User" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent className="bg-white border-0 shadow-md rounded-2xl">
               {USERS.map((u) => (
-                <SelectItem key={u.id} value={u.id} className="cursor-pointer">
+                <SelectItem key={u.id} value={u.id} className="cursor-pointer hover:bg-gray-50 rounded-xl">
                   <div className="flex items-center justify-between w-full">
-                    <span className="font-medium text-foreground">{u.name}</span>
+                    <span className="font-semibold text-foreground">{u.name}</span>
                     <span 
-                      className="ml-2 text-xs px-2 py-0.5 rounded-full border border-border"
-                      style={{ color: u.color, borderColor: `${u.color}40` }}
+                      className="ml-2 text-xs px-2 py-0.5 rounded-full"
+                      style={{ color: u.color, backgroundColor: `${u.color}15` }}
                     >
                       {u.segment.replace(/_/g, ' ')}
                     </span>

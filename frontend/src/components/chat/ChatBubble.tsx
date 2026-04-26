@@ -24,19 +24,19 @@ export function ChatBubble({ message, onExplain }: ChatBubbleProps) {
         
         {/* Main Bubble */}
         <div className={`
-          relative px-4 py-3 rounded-2xl text-[15px] leading-relaxed
+          relative px-4 py-3 rounded-3xl text-[15px] leading-relaxed
           ${isUser 
-            ? 'bg-[var(--hey-primary)] text-white rounded-tr-sm shadow-sm' 
-            : 'bg-card border border-border text-foreground rounded-tl-sm shadow-sm'
+            ? 'bg-[var(--hey-primary)] text-white rounded-br-sm shadow-md' 
+            : 'bg-white border-0 text-foreground rounded-bl-sm shadow-sm'
           }
         `}>
           {message.isStreaming ? (
              <div className="flex items-center gap-1">
                <span className="opacity-70">{message.content}</span>
-               <span className="w-1.5 h-4 bg-foreground/50 animate-pulse rounded-sm" />
+               <span className="w-1.5 h-4 bg-gray-400 animate-pulse rounded-sm" />
              </div>
           ) : (
-            <div className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-muted prose-pre:border prose-pre:border-border max-w-none">
+            <div className={`prose prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:border-0 max-w-none ${isUser ? 'prose-invert text-white' : 'text-gray-800'}`}>
               <ReactMarkdown>{message.content || '...'}</ReactMarkdown>
             </div>
           )}

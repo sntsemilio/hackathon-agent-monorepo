@@ -16,15 +16,15 @@ export function TraceNode({ name, status, latency, explanation, isLast }: TraceN
     switch(status) {
       case 'running': return 'bg-yellow-400';
       case 'done': return 'bg-[var(--hey-primary)]';
-      default: return 'bg-muted';
+      default: return 'bg-gray-300';
     }
   };
 
   const getBorderColor = () => {
     switch(status) {
-      case 'running': return 'border-yellow-400/30';
-      case 'done': return 'border-[var(--hey-primary)]/30';
-      default: return 'border-border';
+      case 'running': return 'border-transparent ring-2 ring-yellow-400/30';
+      case 'done': return 'border-transparent ring-2 ring-[var(--hey-primary)]/30';
+      default: return 'border-transparent';
     }
   };
 
@@ -46,21 +46,21 @@ export function TraceNode({ name, status, latency, explanation, isLast }: TraceN
 
       {/* Content Card */}
       <div className={`
-        relative p-3 rounded-xl border bg-card/40 transition-all duration-300
-        ${status === 'running' ? 'shadow-[0_0_15px_rgba(250,204,21,0.1)]' : ''}
+        relative p-4 rounded-xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md
+        ${status === 'running' ? 'shadow-[0_4px_20px_rgba(250,204,21,0.15)]' : ''}
         ${getBorderColor()}
       `}>
         <div className="flex items-center justify-between mb-1">
-          <span className={`font-medium text-sm transition-colors ${status === 'pending' ? 'text-muted-foreground' : 'text-foreground'}`}>
+          <span className={`font-bold text-sm transition-colors ${status === 'pending' ? 'text-gray-400' : (status === 'done' ? 'text-[var(--hey-primary)]' : 'text-foreground')}`}>
             {name}
           </span>
           {latency !== undefined && (
-            <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-mono ${status === 'running' ? 'text-yellow-400 border-yellow-400/30' : 'text-muted-foreground'}`}>
+            <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-mono ${status === 'running' ? 'text-yellow-500 border-yellow-200 bg-yellow-50' : 'text-gray-500 bg-gray-50 border-gray-100'}`}>
               {latency}ms
             </Badge>
           )}
           {status === 'running' && latency === undefined && (
-            <Activity className="w-3 h-3 text-yellow-400 animate-pulse" />
+            <Activity className="w-3 h-3 text-yellow-500 animate-pulse" />
           )}
         </div>
         
@@ -72,7 +72,7 @@ export function TraceNode({ name, status, latency, explanation, isLast }: TraceN
           }}
           className="overflow-hidden"
         >
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+          <p className="text-xs text-gray-500 leading-relaxed mt-2">
             {explanation}
           </p>
         </motion.div>

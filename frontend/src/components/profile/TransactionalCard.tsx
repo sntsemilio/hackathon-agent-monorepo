@@ -16,9 +16,9 @@ export function TransactionalCard({ ficha }: TransactionalCardProps) {
       animate={{ rotateY: 0, opacity: 1 }}
       transition={{ duration: 0.6, type: 'spring', bounce: 0.4, delay: 0.1 }}
     >
-      <Card className="border-border bg-background shadow-sm overflow-hidden">
-        <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-sm font-semibold text-foreground">Top Gastos (30 días)</CardTitle>
+      <Card className="bg-white border-0 shadow-md rounded-3xl overflow-hidden">
+        <CardHeader className="p-5 pb-0">
+          <CardTitle className="text-sm font-bold text-foreground">Top Gastos (30 días)</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <div className="h-[160px] w-full">

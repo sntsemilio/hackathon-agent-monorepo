@@ -61,7 +61,7 @@ export function ChatPanel({
 
   return (
     <>
-      <div className="flex-1 flex flex-col relative bg-background/30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blend-overlay">
+      <div className="flex-1 flex flex-col relative bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blend-overlay opacity-95">
         
         {/* Messages Area */}
         <ScrollArea className="flex-1 px-6 pt-6">
@@ -96,7 +96,7 @@ export function ChatPanel({
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="p-4 bg-background/80 backdrop-blur-md border-t border-border">
+        <div className="p-4 pb-6 bg-transparent">
           <div className="max-w-3xl mx-auto flex flex-col gap-3">
             
             <QuestionChips 
@@ -105,12 +105,12 @@ export function ChatPanel({
               disabled={isStreaming || !!pendingToolCall}
             />
 
-            <form onSubmit={handleSubmit} className="relative flex items-end gap-2 bg-card border border-border rounded-2xl p-1 shadow-sm focus-within:ring-1 focus-within:ring-[var(--hey-primary)] transition-all">
+            <form onSubmit={handleSubmit} className="relative flex items-end gap-2 bg-white rounded-3xl p-2 shadow-lg transition-all border border-gray-100">
               
               <button
                 type="button"
                 onClick={speech.isListening ? speech.stopListening : speech.startListening}
-                className={`p-3 shrink-0 rounded-xl transition-colors ${speech.isListening ? 'bg-red-500/20 text-red-500' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                className={`p-3 shrink-0 rounded-full transition-colors ${speech.isListening ? 'bg-red-50 text-red-500' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-700'}`}
                 disabled={isStreaming || !!pendingToolCall || !speech.supported}
                 title={speech.supported ? "Usar micrófono" : "Micrófono no soportado"}
               >
@@ -127,7 +127,7 @@ export function ChatPanel({
                   }
                 }}
                 placeholder="Pregúntale a Havi..."
-                className="flex-1 bg-transparent border-0 resize-none max-h-32 min-h-[44px] py-3 px-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 text-sm scrollbar-hide"
+                className="flex-1 bg-transparent border-0 resize-none max-h-32 min-h-[44px] py-3 px-2 text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-0 text-sm scrollbar-hide font-medium"
                 rows={1}
                 disabled={isStreaming || !!pendingToolCall}
               />
@@ -135,9 +135,9 @@ export function ChatPanel({
               <button
                 type="submit"
                 disabled={!input.trim() || isStreaming || !!pendingToolCall}
-                className="p-3 shrink-0 rounded-xl bg-[var(--hey-primary)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity mr-1 mb-1"
+                className="p-3 shrink-0 rounded-full bg-[var(--hey-primary)] text-white shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all mb-0.5 mr-0.5"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </button>
             </form>
             
