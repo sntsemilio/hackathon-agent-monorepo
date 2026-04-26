@@ -58,9 +58,34 @@ class _LiteLLMClient:
         try:
             resp = await acompletion(**kwargs)
             return resp["choices"][0]["message"]["content"] or ""
-        except Exception:
-            logger.exception("LiteLLM falló (model=%s)", self.model)
-            return ""
+        except Exception as e:
+            logger.exception("LiteLLM falló (model=%s): %s", self.model, str(e))
+            # Return graceful fallback — JSON if response_format requested, else plain text
+            if response_format and response_format.get("type") == "json_object":
+                return self._mock_json_response()
+            return self._mock_text_response()
+
+    def _mock_json_response(self) -> str:
+        """Fallback JSON response when LiteLLM is unavailable."""
+        return """{
+            "intent": "informacion_general",
+            "sentiment": "neutral",
+            "urgency": "low",
+            "formality": "neutral",
+            "topic": null,
+            "mentions_money_amount": false,
+            "queries": [],
+            "depth": "shallow"
+        }"""
+
+    def _mock_text_response(self) -> str:
+        """Fallback text response when LiteLLM is unavailable."""
+        return (
+            "Estoy en modo demo sin API key configurada. "
+            "Para activar respuestas con IA real, "
+            "agrega tu OPENAI_API_KEY en el archivo .env. "
+            "Aun así, puedes explorar la interfaz y la lógica de personalización."
+        )
 
 
 _ROLE_TO_MODEL_KEY = {
