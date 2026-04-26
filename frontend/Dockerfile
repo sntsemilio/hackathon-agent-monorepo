@@ -1,13 +1,6 @@
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8081
-
+FROM node:20-slim
 WORKDIR /app
-
-COPY src ./src
-
-EXPOSE 8081
-
-CMD ["python", "src/views/user_chat.py"]
+COPY package*.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8081"]

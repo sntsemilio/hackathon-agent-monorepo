@@ -40,6 +40,17 @@ class GlobalState(TypedDict, total=False):
     draft_meta: Optional[Dict[str, Any]]
     final_response: Optional[str]
 
+    # Observability
+    node_traces: Optional[List[Dict[str, Any]]]
+    _trace_events: Optional[List[Dict[str, Any]]]
+
+    # Tool confirmation
+    pending_tool_call: Optional[Dict[str, Any]]
+    tool_call_confirmed: Optional[bool]
+
+    # UI components
+    ui_components: Optional[List[Dict[str, Any]]]
+
 
 def empty_state() -> GlobalState:
     return GlobalState(
@@ -57,4 +68,8 @@ def empty_state() -> GlobalState:
         draft_response=None,
         draft_meta=None,
         final_response=None,
+        node_traces=None,
+        pending_tool_call=None,
+        tool_call_confirmed=None,
+        ui_components=None,
     )

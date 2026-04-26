@@ -1,0 +1,188 @@
+{
+  "tools": [
+    {
+      "name": "consultar_saldo",
+      "family": "hey-cuentas",
+      "description": "Consulta saldo de cuenta",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "listar_movimientos",
+      "family": "hey-cuentas",
+      "description": "Lista movimientos recientes",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "obtener_estado_cuenta",
+      "family": "hey-cuentas",
+      "description": "Estado de cuenta mensual",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "consultar_limite",
+      "family": "hey-credito",
+      "description": "Consulta límite de tarjeta",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "pagar_tarjeta",
+      "family": "hey-credito",
+      "description": "Pago a tarjeta de crédito",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "convertir_a_msi",
+      "family": "hey-credito",
+      "description": "Convertir compra a MSI",
+      "mutates": true,
+      "requires_step_up": [],
+      "blocked_if_salud": ["presion_financiera"]
+    },
+    {
+      "name": "solicitar_aumento_linea",
+      "family": "hey-credito",
+      "description": "Solicitar aumento de línea",
+      "mutates": true,
+      "requires_step_up": [],
+      "blocked_if_salud": ["presion_financiera"]
+    },
+    {
+      "name": "consultar_posicion",
+      "family": "hey-inversion",
+      "description": "Posición de inversión",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "consultar_gat",
+      "family": "hey-inversion",
+      "description": "Consulta GAT de producto",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "abonar_inversion",
+      "family": "hey-inversion",
+      "description": "Abonar a inversión",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "retirar_inversion",
+      "family": "hey-inversion",
+      "description": "Retirar de inversión",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "simular_rendimiento",
+      "family": "hey-inversion",
+      "description": "Simular rendimiento",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "transferir_spei",
+      "family": "hey-transferencias",
+      "description": "Transferencia SPEI",
+      "mutates": true,
+      "requires_step_up": ["actividad_atipica_alerta"]
+    },
+    {
+      "name": "agendar_transferencia",
+      "family": "hey-transferencias",
+      "description": "Agendar transferencia",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "generar_qr_codi",
+      "family": "hey-transferencias",
+      "description": "Generar QR CoDi",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "escanear_codi",
+      "family": "hey-transferencias",
+      "description": "Escanear QR CoDi",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "consultar_status_pro",
+      "family": "hey-pro-shop",
+      "description": "Status de Hey Pro",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "activar_hey_pro",
+      "family": "hey-pro-shop",
+      "description": "Activar Hey Pro",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "consultar_cashback",
+      "family": "hey-pro-shop",
+      "description": "Cashback acumulado",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "listar_ofertas_personalizadas",
+      "family": "hey-pro-shop",
+      "description": "Ofertas personalizadas",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "crear_ticket",
+      "family": "hey-soporte",
+      "description": "Crear ticket de soporte",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "solicitar_reestructura",
+      "family": "hey-soporte",
+      "description": "Solicitar reestructura",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "agendar_asesoria",
+      "family": "hey-soporte",
+      "description": "Agendar asesoría",
+      "mutates": true,
+      "requires_step_up": []
+    },
+    {
+      "name": "iniciar_step_up",
+      "family": "hey-verificacion",
+      "description": "Iniciar verificación step-up",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "validar_otp",
+      "family": "hey-verificacion",
+      "description": "Validar código OTP",
+      "mutates": false,
+      "requires_step_up": []
+    },
+    {
+      "name": "validar_biometria",
+      "family": "hey-verificacion",
+      "description": "Validar biometría",
+      "mutates": false,
+      "requires_step_up": []
+    }
+  ]
+}

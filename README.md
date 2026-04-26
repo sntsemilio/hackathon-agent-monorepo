@@ -111,26 +111,9 @@ Accede a:
                     └──────────────────┘
 ```
 
-#### Stack UI
-- **Framework**: React 18 + TypeScript
-- **Build**: Vite (2.5s dev, <2s rebuild)
-- **Styling**: Tailwind CSS + custom dark theme
-- **Animations**: Framer Motion + CSS keyframes
-- **Icons**: Lucide React
-- **State**: React hooks + Context API (chat), SSE streaming for real-time
-- **Colors**: Green (#00C389), Purple (#6B4EFF), Orange (#FF8C42), Dark (#0D1117)
+For local testing without external API keys, the example configuration points every LLM role at a small Ollama model (`qwen2.5:1.5b-instruct`). The first Docker Compose run will download that model automatically.
 
-#### Componentes principales
-- `App.tsx` — Shell, view switching, header/footer
-- `ChatPanel.tsx` — Chat interface con SSE streaming, action cards
-- `TracePanel.tsx` — Real-time agent execution visualization
-- `FichaSidebar.tsx` — Customer segmentation + confidence bars
-- `ObsDashboard.tsx` — Observability dashboard con métricas live
-- `LoginScreen.tsx` — Splash screen de bienvenida
-
----
-
-## Variables de entorno
+Set at minimum:
 
 Ver `.env.example` para la lista completa. Las mínimas:
 
