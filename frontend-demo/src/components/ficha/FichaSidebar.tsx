@@ -6,13 +6,18 @@ interface FichaSidebarProps {
   visible: boolean
 }
 
+function getInitials(text: string): string {
+  if (!text) return '?'
+  return text.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
 export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
 
   if (!visible || !user) return null
 
   if (!ficha) return (
     <div style={{ padding: '20px', textAlign: 'center', color: '#484F58', fontSize: '12px', fontFamily: 'Inter, sans-serif' }}>
-      Personalización desactivada
+      Cargando perfil...
     </div>
   )
 
@@ -20,7 +25,7 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
                   : ficha?.risk_level === 'medium' ? '#FF8C42'
                   : '#00C389'
 
-  const card = (accentColor: string, icon: string, label: string, name: string,
+  const card = (accentColor: string, label: string, name: string,
                 sub?: string, extra?: React.ReactNode) => (
     <div style={{
       background: '#1C2128', borderRadius: '12px', padding: '12px',
@@ -28,7 +33,7 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
     }}>
       <p style={{ color: accentColor, fontSize: '9px', fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '5px' }}>
-        {icon} {label}
+        {label}
       </p>
       <p style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 600,
                   lineHeight: 1.3, marginBottom: sub ? '4px' : 0 }}>
@@ -39,6 +44,8 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
     </div>
   )
 
+  const userInitials = getInitials(user.name)
+
   return (
     <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
 
@@ -48,8 +55,9 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
         <div style={{
           width: '32px', height: '32px', borderRadius: '50%',
           background: 'rgba(0,195,137,0.12)', border: '1.5px solid rgba(0,195,137,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
-        }}>👤</div>
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px',
+          fontWeight: 700, color: '#00C389', fontFamily: 'monospace'
+        }}>{userInitials}</div>
         <div>
           <p style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 600, margin: 0 }}>
             {user.user_id ?? '—'}
@@ -59,12 +67,12 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
       </div>
 
       {/* Conductual */}
-      {card('#6B4EFF', '🧠', 'Conductual',
+      {card('#6B4EFF', 'Conductual',
             ficha?.offer_strategy ?? 'Análisis en curso',
             undefined)}
 
       {/* Transaccional */}
-      {card('#00C389', '💳', 'Transaccional',
+      {card('#00C389', 'Transaccional',
             `${ficha?.gasto ?? 0} MXN/mes`,
             undefined,
             ficha?.top_categories && ficha.top_categories.length > 0 ? (
@@ -80,7 +88,7 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
       )}
 
       {/* Salud Financiera */}
-      {card(riskColor, '📊', 'Salud Financiera',
+      {card(riskColor, 'Salud Financiera',
             `Score ${ficha?.health_score ?? 0}`,
             undefined,
             ficha?.risk_level === 'high' ? (
@@ -88,7 +96,7 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
                 display: 'inline-block', marginTop: '6px', fontSize: '9px',
                 padding: '2px 7px', borderRadius: '5px',
                 background: 'rgba(239,68,68,0.12)', color: '#EF4444'
-              }}>⚠ Riesgo alto</span>
+              }}>Riesgo alto</span>
             ) : undefined
       )}
 

@@ -14,6 +14,7 @@ export interface DemoUser {
   questions?: SampleQuestion[] | string[]
   sample_questions?: SampleQuestion[] | string[]
   description?: string
+  ficha_mock?: Ficha
 }
 
 export interface User {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSSE } from './hooks/useSSE'
 import { useUsers } from './hooks/useUsers'
 import { ChatPanel } from './components/chat/ChatPanel'
@@ -6,21 +6,32 @@ import { FichaSidebar } from './components/ficha/FichaSidebar'
 import { TracePanel } from './components/trace/TracePanel'
 import { ObsDashboard } from './components/obs/ObsDashboard'
 import LoginScreen from './components/login/LoginScreen'
-import { DemoUser } from './types'
+import { DemoUser, Ficha } from './types'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedUserIdx, setSelectedUserIdx] = useState(0)
   const [personalizationEnabled, setPersonalizationEnabled] = useState(true)
   const [activeView, setActiveView] = useState<'chat' | 'obs'>('chat')
+  const [mockFicha, setMockFicha] = useState<Ficha | null>(null)
 
-  const { messages, currentTrace, ficha, profile, isStreaming, sendMessage, clearMessages } = useSSE()
+  const { messages, currentTrace, ficha: sseficha, profile, isStreaming, sendMessage, clearMessages } = useSSE()
   const { users } = useUsers()
 
   const selectedUser = useMemo(
     () => (users?.[selectedUserIdx] as DemoUser) || null,
     [users, selectedUserIdx]
   )
+
+  // Cuando cambia el usuario seleccionado, carga la ficha_mock como fallback
+  useEffect(() => {
+    if (selectedUser?.ficha_mock) {
+      setMockFicha(selectedUser.ficha_mock)
+    }
+  }, [selectedUser])
+
+  // Prioriza la ficha real del SSE, si no está disponible usa la mock
+  const ficha = sseficha || mockFicha
 
   const handleSend = (message: string) => {
     sendMessage(message, personalizationEnabled ? selectedUser?.user_id : null)
@@ -58,8 +69,8 @@ export default function App() {
                onError={e => (e.currentTarget.style.display = 'none')} />
           <span style={{ color: '#00C389', fontWeight: 800, fontSize: '16px',
                          letterSpacing: '-0.02em' }}>havi</span>
-          <span style={{ background: 'rgba(0,195,137,0.15)', color: '#00C389',
-                         fontSize: '10px', padding: '2px 5px', borderRadius: '5px', fontWeight: 700 }}>✦</span>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%',
+                         background: '#00C389', display: 'inline-block', marginLeft: '6px' }} />
           <div style={{ width: '1px', height: '24px', background: '#21262D', marginLeft: '8px' }} />
         </div>
 
@@ -75,7 +86,7 @@ export default function App() {
                 background: activeView === v ? '#00C389' : 'transparent',
                 color: activeView === v ? '#0D1117' : '#8B949E'
               }}>
-              {v === 'chat' ? '💬 Chat' : '📊 Obs'}
+              {v === 'chat' ? 'Chat' : 'Obs'}
             </button>
           ))}
         </div>

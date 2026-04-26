@@ -49,10 +49,8 @@ export default function LoginScreen({ onEnter }: LoginScreenProps) {
               color: '#00C389', fontWeight: 800, fontSize: '28px',
               letterSpacing: '-0.03em', fontFamily: 'Inter, sans-serif'
             }}>havi</span>
-            <span style={{
-              background: 'rgba(0,195,137,0.15)', color: '#00C389',
-              fontSize: '11px', padding: '3px 7px', borderRadius: '6px', fontWeight: 700
-            }}>✦</span>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%',
+                           background: '#00C389', display: 'inline-block' }} />
           </div>
           <span style={{
             color: '#484F58', fontSize: '11px', fontWeight: 600,
