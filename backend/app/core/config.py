@@ -106,6 +106,16 @@ class Settings(BaseSettings):
     # Eval harness
     REGRESSION_BASE_URL: str = "http://localhost:8080"
 
+    # MCP Gateway
+    MCP_GATEWAY_URL: str = "http://localhost:8765"
+    MCP_GATEWAY_TOKEN: str = "demo-token"
+
+    # WebSocket
+    WS_PROACTIVE_INTERVAL_SECONDS: int = 30
+
+    # Feature flags
+    FEATURE_FLAGS_REDIS_KEY: str = "feature_flags"
+
     # Legacy aliases used by older modules
     @property
     def MODELS_DIR(self) -> Path:

@@ -10,6 +10,20 @@ services:
       timeout: 3s
       retries: 20
 
+  mcp-gateway:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: hackathon-mcp-gateway
+    command: ["python", "-m", "uvicorn", "mcp_servers.gateway:app", "--host", "0.0.0.0", "--port", "8765"]
+    ports:
+      - "8765:8765"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8765/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ../backend
@@ -21,9 +35,14 @@ services:
       ANALYTICS_MODELS_DIR: /app/analytics/models
       FICHA_PREFIX: "ficha:"
       FICHA_TTL_SECONDS: 86400
+      MCP_GATEWAY_URL: http://mcp-gateway:8765
+      OTEL_ENABLED: "true"
+      OTEL_SERVICE_NAME: havi-backend
     depends_on:
       redis:
         condition: service_healthy
+      mcp-gateway:
+        condition: service_started
     ports:
       - "8080:8080"
 
@@ -34,6 +53,8 @@ services:
     environment:
       BACKEND_STREAM_URL: http://backend:8080/chat/stream
       BACKEND_API_URL: http://backend:8080
+      VITE_API_URL: http://localhost:8080
+      VITE_WS_URL: ws://localhost:8080
     depends_on:
       backend:
         condition: service_started
