@@ -249,8 +249,7 @@ npm run build
 
 ## Licencia
 
-MIT (Datathon 2026 — Hey Banco + Coagente)
+MIT (Datathon 2026 — Hey Banco)
 
 ---
 
-**Hecho en 🇲🇽 con ❤️ por el equipo Coagente**
