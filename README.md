@@ -1,253 +1,256 @@
-# Hackathon Agent Monorepo
+# Havi × Hey Banco · Datathon 2026
 
-Production-grade AI agent platform scaffold for Google Cloud Run with async-first backend services, hierarchical LangGraph delegation, MCP tool integration, advanced RAG, classical-ML analytics, RBAC admin observability, and hardened prompt-security controls.
-
----
-
-## Repository Layout
-
-```text
-hackathon-agent-monorepo/
-├── .devcontainer/
-│   └── devcontainer.json
-├── .github/
-│   └── workflows/
-│       └── deploy.yml
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── routes.py
-│   │   │   └── admin/
-│   │   │       ├── metrics.py
-│   │   │       └── evals.py
-│   │   ├── agents/
-│   │   │   ├── state.py
-│   │   │   ├── supervisor.py
-│   │   │   ├── micro_agents/
-│   │   │   │   ├── guardrail_slm.py
-│   │   │   │   ├── profiler_slm.py
-│   │   │   │   └── summarizer_slm.py
-│   │   │   └── teams/
-│   │   │       ├── research/
-│   │   │       │   ├── graph.py
-│   │   │       │   ├── state.py
-│   │   │       │   ├── agents.py
-│   │   │       │   └── vision_agent.py
-│   │   │       └── tool_ops/
-│   │   │           ├── graph.py
-│   │   │           └── agents.py
-│   │   ├── analytics/
-│   │   │   ├── __init__.py
-│   │   │   ├── engine.py
-│   │   │   └── models/        # .pkl / .joblib artifacts
-│   │   ├── mcp/
-│   │   │   ├── client.py
-│   │   │   └── adapter.py
-│   │   ├── skills/
-│   │   │   └── code_executor.py
-│   │   ├── rag/
-│   │   │   ├── retrieval.py
-│   │   │   ├── re_ranker.py
-│   │   │   └── vector_store.py
-│   │   ├── evals/
-│   │   │   ├── framework.py
-│   │   │   └── test_set.py
-│   │   ├── core/
-│   │   │   ├── auth.py
-│   │   │   ├── config.py
-│   │   │   ├── database.py
-│   │   │   ├── checkpointer.py
-│   │   │   └── rate_limit.py
-│   │   ├── __init__.py
-│   │   └── main.py
-│   ├── scripts/
-│   │   └── generate_initial_profiles.py
-│   ├── tests/
-│   │   ├── conftest.py
-│   │   ├── test_api.py
-│   │   ├── test_agents.py
-│   │   ├── test_security.py
-│   │   └── test_rag.py
-│   ├── pyproject.toml
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   └── views/
-│   │       ├── user_chat.py
-│   │       └── admin_dashboard.py
-│   └── Dockerfile
-├── infrastructure/
-│   ├── docker-compose.yml
-│   └── setup_redis.sh
-├── Makefile
-├── .pre-commit-config.yaml
-├── .env.example
-├── .gitignore
-└── README.md
-```
+> Asistente conversacional inteligente con personalización por clustering no supervisado.
+> 
+> **Havi** es un agente financiero multimodal que adapta su respuesta al segmento de cliente, 
+> integrando RAG, guardrails de seguridad, análisis de riesgo y proyecciones de impacto en tiempo real.
 
 ---
 
-## Architecture Summary
+## Demo rápida (local)
 
-| Layer | Responsibility |
-|---|---|
-| **Async I/O** | End-to-end `async`/`await` across request handling, graph execution, Redis operations, and tool integration. |
-| **Hierarchical delegation** | `supervisor.py` routes to `research` or `tool_ops` subgraphs via LangGraph. |
-| **Guardrail SLM** | `micro_agents/guardrail_slm.py` runs before delegation, blocking prompt injection, jailbreak, and system-prompt extraction attempts (fail-closed policy). |
-| **Profiler SLM** | `micro_agents/profiler_slm.py` builds real-time conversational profiles (tone, financial literacy, frustrations) with LLM inference or deterministic heuristic fallback. |
-| **Summarizer SLM** | `micro_agents/summarizer_slm.py` compresses conversation context for long-running threads. |
-| **MCP integration** | `mcp/client.py` and `mcp/adapter.py` transform external MCP tools into LangChain-compatible tools. |
-| **Advanced RAG** | Hybrid dense + BM25 retrieval from RedisVL → cross-encoder rerank from Top 15 to Top 3 → Ragas-compatible evaluation. |
-| **Analytics engine** | Singleton `AnalyticsEngine` loads classical-ML artifacts (`.pkl` / `.joblib`) at startup and serves user insights (segmentation, financial health, churn risk). |
-| **RBAC admin** | JWT-protected `/admin/*` endpoints expose token usage, delegation traces, and eval metrics. |
-| **Multimodality** | Base64 image support in global state and `research/vision_agent.py`. |
-| **Rate limiting** | Redis-backed budget protection via SlowAPI + async counters. |
+### Requisitos
+- **Python** 3.11+
+- **Node** 18+
+- **Redis** (Docker o instalado)
+- **OpenAI API key** (o compatible con LiteLLM)
 
----
-
-## Quickstart
-
-### 1. Environment
+### Setup en 3 comandos
 
 ```bash
+# 1. Clonar
+git clone https://github.com/sntsemilio/hackathon-agent-monorepo
+cd hackathon-agent-monorepo
+
+# 2. Configurar secretos
 cp .env.example .env
+# Edita .env con tu OPENAI_API_KEY (o ANTHROPIC_API_KEY, etc.)
+
+# 3. Levantar todo
+chmod +x start_local.sh
+./start_local.sh
+```
+
+Accede a:
+- **Chat**: http://localhost:5173
+- **Backend API**: http://localhost:8000/docs
+- **Admin Observability**: http://localhost:5173/admin (integrado en el frontend)
+
+---
+
+## Arquitectura
+
+### Backend (Python 3.11 + FastAPI + LangGraph + LiteLLM)
+
+```
+┌─────────────────────────────────────┐
+│     /chat/stream (SSE)              │
+│     Real-time agent execution       │
+└──────────────┬──────────────────────┘
+               │
+       ┌───────▼────────┐
+       │   Supervisor   │  ← Routes requests
+       └───┬────────┬───┘
+           │        │
+    ┌──────▼──┐  ┌──▼───────┐
+    │ Research│  │ Tool Ops  │  LangGraph Teams
+    │ Team    │  │ Team      │
+    └────┬────┘  └──┬───────┘
+         │          │
+    ┌────▼──────────▼────┐
+    │  Micro-agents      │
+    │  ├─ Guardrail SLM  │
+    │  ├─ Profiler SLM   │
+    │  ├─ Summarizer SLM │
+    │  └─ Ficha Injector │
+    └────┬───────────────┘
+         │
+    ┌────▼──────────────┐
+    │  External APIs    │
+    │  ├─ LiteLLM       │
+    │  ├─ RAG (Redis)   │
+    │  └─ MCP Tools     │
+    └───────────────────┘
+```
+
+#### Flujo de seguridad
+1. **Guardrail SLM** bloquea injection/jailbreak (fail-closed)
+2. **Profiler SLM** infiere segmento y riesgo del usuario
+3. **Supervisor** delega a Research o Tool Ops según contexto
+4. **Tool Ops** ejecuta acciones con MCP (Model Context Protocol)
+5. **Summarizer** comprime conversación para contexto largo
+
+### Frontend (React 18 + TypeScript + Vite + Framer Motion + Tailwind)
+
+```
+┌──────────────────────────────────────────┐
+│          Login Screen (splash)           │
+└──────────────┬───────────────────────────┘
+               │ onEnter
+        ┌──────▼─────────┐
+        │  Main App      │
+        └──────┬─────────┘
+               │
+      ┌────────┴────────┐
+      │                 │
+   ┌──▼──────┐   ┌──────▼────┐
+   │ Chat    │   │ Obs        │
+   │ View    │   │ Dashboard  │
+   └──┬──────┘   └──────┬─────┘
+      │                 │
+  ┌───▼─────────┐   ┌───▼──────────────┐
+  │ 3 Panels    │   │ 4 KPI Cards      │
+  │ ├─ Trace    │   │ ├─ Volumen       │
+  │ ├─ Chat     │   │ ├─ Costos        │
+  │ └─ Ficha    │   │ ├─ Impacto       │
+  │             │   │ └─ Seguridad     │
+  │             │   │                  │
+  │             │   │ Traces Table     │
+  │             │   │ RAG Evals        │
+  └─────────────┘   │ Proyección       │
+                    └──────────────────┘
 ```
 
 For local testing without external API keys, the example configuration points every LLM role at a small Ollama model (`qwen2.5:1.5b-instruct`). The first Docker Compose run will download that model automatically.
 
 Set at minimum:
 
-| Variable | Purpose |
-|---|---|
-| `JWT_SECRET_KEY` | Signing key for admin JWT tokens |
-| `REDIS_URL` | Redis connection string (default `redis://redis:6379/0`) |
-| `GCP_PROJECT_ID` | Google Cloud project for deployment |
-| `GCP_REGION` | Cloud Run target region |
-| `GCP_SERVICE_NAME` | Cloud Run service name |
+Ver `.env.example` para la lista completa. Las mínimas:
 
-See [`.env.example`](.env.example) for the full list of configurable variables including model selection, RAG parameters, rate limits, analytics paths, and MCP connectivity.
-
-### 2. DevContainers
-
-Open this repo in VS Code and choose **Reopen in Container**. The container installs `uv` and backend dependencies from `backend/pyproject.toml`, including dev extras (pytest, ruff, pre-commit).
-
-### 3. Local Development
-
-```bash
-make up
-```
-
-This launches via Docker Compose:
-
-| Service | URL |
-|---|---|
-| Backend | `http://localhost:8080` |
-| Frontend | `http://localhost:8081` |
-| Redis | `redis://localhost:6379` |
-
-Backend-only hot reload (no Docker):
-
-```bash
-make dev
-```
-
-### 4. Seed Data
-
-Generate initial conversational profiles from simulated Havi logs:
-
-```bash
-cd backend && uv run python scripts/generate_initial_profiles.py
-```
-
-### 5. Quality Gates
-
-| Command | Description |
-|---|---|
-| `make format` | Run Ruff linter (auto-fix) + formatter |
-| `make test` | Run pytest suite |
-| `make evals` | Run Ragas evaluation framework |
-
-### 6. Deployment (CI/CD)
-
-GitHub Actions workflow at `.github/workflows/deploy.yml` triggers on push to `main`.
-
-**Pipeline stages:**
-
-1. Spin up Redis service container
-2. Install dependencies with `uv sync --extra dev`
-3. Run `pytest` — pipeline fails fast on test failures
-4. Authenticate to Google Cloud via service-account key
-5. Build and push backend Docker image to GCR
-6. Deploy image to Google Cloud Run
-
-**Required GitHub configuration:**
-
-| Type | Name |
-|---|---|
-| Secret | `GCP_SA_KEY` |
-| Secret | `GCP_PROJECT_ID` |
-| Secret | `REDIS_URL` |
-| Secret | `JWT_SECRET_KEY` |
-| Variable | `CLOUD_RUN_SERVICE` |
-| Variable | `GCP_REGION` |
-
----
-
-## Environment Variable Reference
-
-| Variable | Default | Description |
+| Variable | Descripción | Ejemplo |
 |---|---|---|
-| `APP_NAME` | `Hackathon Agent API` | Application title in FastAPI docs |
-| `ENVIRONMENT` | `development` | Runtime environment label |
-| `LOG_LEVEL` | `INFO` | Python logging level |
-| `TESTING` | `false` | Skip Redis/vector-store init when `true` |
-| `JWT_SECRET_KEY` | `change-me-in-production` | JWT signing secret |
-| `GUARDRAIL_MODEL` | `gpt-4o-mini` | Model for guardrail SLM |
-| `SUMMARIZER_MODEL` | `gpt-4o-mini` | Model for summarizer SLM |
-| `PROFILER_MODEL` | `gpt-4o-mini` | Model for profiler SLM |
-| `SUPERVISOR_ROUTER_MODEL` | `gpt-4o-mini` | Model for supervisor routing |
-| `REDIS_URL` | `redis://redis:6379/0` | Redis connection string |
-| `REDIS_INDEX_NAME` | `hackathon_docs` | RedisVL index for RAG documents |
-| `CHAT_RATE_LIMIT` | `20/minute` | SlowAPI rate limit for chat endpoint |
-| `BUDGET_LIMIT_PER_WINDOW` | `20` | Max requests per budget window |
-| `BUDGET_WINDOW_SECONDS` | `60` | Budget window duration |
-| `ANALYTICS_MODELS_DIR` | `app/analytics/models` | Path to ML model artifacts |
-| `MCP_HOST` | `localhost` | MCP server host |
-| `MCP_PORT` | `8765` | MCP server port |
-| `RAG_DENSE_TOP_K` | `15` | Dense retrieval candidates |
-| `RAG_FINAL_TOP_K` | `3` | Final documents after reranking |
-| `MAX_GLOBAL_ITERATIONS` | `5` | Max supervisor graph iterations |
+| `OPENAI_API_KEY` | API key del proveedor | `sk-proj-...` |
+| `LLM_MODEL` | Modelo a usar | `gpt-4o-mini` |
+| `REDIS_URL` | URL de Redis | `redis://localhost:6379` |
+| `VITE_API_BASE_URL` | URL del backend (frontend) | `http://localhost:8000` |
+| `ADMIN_JWT_SECRET` | Secret para admin panel | `change-this-in-prod` |
 
 ---
 
-## Security Notes
+## Scripts y herramientas
 
-- **Fail-closed guardrail** — heuristic-based prompt security blocks suspicious requests before they reach the LLM.
-- **RBAC enforcement** — admin metrics and eval routes require JWT tokens with `role=admin`.
-- **Sandboxed execution** — the code executor skill applies restrictive local policy checks before running any tool output.
-- **Rate limiting** — async Redis-backed counters prevent budget exhaustion at the API layer.
+### Backend
+
+```bash
+# Clustering inicial (analytics)
+python backend/scripts/generate_initial_profiles.py
+
+# Tests
+cd backend && pytest tests/ -v
+
+# Linting
+ruff check . --fix
+mypy app/
+```
+
+### Frontend
+
+```bash
+# Dev server (hot reload)
+npm run dev
+
+# Build production
+npm run build
+
+# Type checking
+npm run type-check
+```
+
+### Docker
+
+```bash
+# Levantar todo con docker-compose
+cd infrastructure
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f backend
+```
 
 ---
 
-## Tech Stack
+## Stack técnico
 
-| Category | Technology |
-|---|---|
-| Runtime | Python 3.11, `async`/`await` |
-| Framework | FastAPI + Uvicorn |
-| Agent orchestration | LangGraph, LangChain Core |
-| LLM gateway | LiteLLM |
-| Vector store | RedisVL (dense + BM25 hybrid) |
-| Reranking | sentence-transformers cross-encoder |
-| Evaluation | Ragas |
-| Analytics | scikit-learn, joblib |
-| Auth | python-jose (JWT) |
-| Rate limiting | SlowAPI |
-| Checkpointing | langgraph-checkpoint-redis |
-| Package management | uv + hatchling |
-| Linting | Ruff |
-| CI/CD | GitHub Actions → Google Cloud Run |
-| Containers | Docker, Docker Compose |
-| Dev environment | VS Code DevContainers |
+| Componente | Tecnología | Nota |
+|---|---|---|
+| **Orquestación** | LangGraph | Supervisory pattern + subgraphs |
+| **LLMs** | LiteLLM | OpenAI, Anthropic, Google compatible |
+| **RAG** | Redis + Sentence Transformers | Vector search, sparse retrieval |
+| **Async** | FastAPI + asyncio | End-to-end non-blocking I/O |
+| **Streaming** | Server-Sent Events (SSE) | Real-time trace + completion |
+| **Seguridad** | Custom SLM guardrails | Fail-closed, injection prevention |
+| **Analytics** | scikit-learn + joblib | K-means clustering, offline profiles |
+| **Frontend** | React 18 + Tailwind | Dark theme, Framer Motion animations |
+| **Admin** | Integrated in frontend | Metrics, traces table, eval scores |
+
+---
+
+## Endpoints principales
+
+### Chat
+- **POST** `/chat/stream` — Query con SSE streaming de respuesta y traces
+
+### Admin / Observability
+- **GET** `/admin/metrics` — Volume, costs, success rates, latency
+- **GET** `/admin/evals/ragas` — Faithfulness, answer relevancy, F1 score
+- **GET** `/admin/traces?limit=50` — Recent execution traces
+
+### RAG
+- **POST** `/rag/retrieve` — Retrieve documents by query (internal use)
+
+---
+
+## Configuración en producción
+
+### Google Cloud Run
+```bash
+# Build y deploy automático via Cloud Build
+# Ver .github/workflows/deploy.yml para el pipeline CI/CD
+```
+
+### Variables críticas
+- `ADMIN_JWT_SECRET` → Cambiar a valor fuerte
+- `OPENAI_API_KEY` → Usar Secret Manager en GCP
+- `REDIS_URL` → Usar Cloud Memorystore en lugar de localhost
+- `BACKEND_RELOAD=false` → Desactivar reload en producción
+
+---
+
+## Contribir
+
+1. Clonar y crear branch: `git checkout -b feature/my-feature`
+2. Cambios en backend → actualizar `pyproject.toml` + tests
+3. Cambios en frontend → `npm run type-check` + `npm run build`
+4. Commit: `git commit -m "feat: add my feature"`
+5. Push y PR
+
+---
+
+## Troubleshooting
+
+**Backend no conecta a Redis**
+```bash
+redis-cli ping
+# Si falla, iniciar: redis-server
+```
+
+**Frontend no compila**
+```bash
+cd frontend-demo
+npm install
+npm run build
+```
+
+**SSE connection closed**
+- Verificar CORS en backend (`CORS_ALLOW_ORIGINS`)
+- Verificar `VITE_API_BASE_URL` en frontend
+
+---
+
+## Licencia
+
+MIT (Datathon 2026 — Hey Banco + Coagente)
+
+---
+
+**Hecho en 🇲🇽 con ❤️ por el equipo Coagente**

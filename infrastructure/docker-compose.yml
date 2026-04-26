@@ -85,11 +85,11 @@ services:
       mcp-gateway:
         condition: service_started
     ports:
-      - "8080:8080"
+      - "8000:8000"
 
   frontend:
     build:
-      context: ../frontend
+      context: ../frontend-demo
       dockerfile: Dockerfile
     environment:
       BACKEND_STREAM_URL: http://backend:8080/chat/stream
