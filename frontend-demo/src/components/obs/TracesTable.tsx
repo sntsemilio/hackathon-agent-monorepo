@@ -1,18 +1,6 @@
-import { useState, useEffect } from 'react'
-import { TraceRow as HookTraceRow } from '../../hooks/useMetrics'
+import { TraceRow } from '../../hooks/useMetrics'
 
-interface DisplayTraceRow {
-  id: string
-  hora: string
-  usuario: string
-  query: string
-  status: string
-  statusColor: string
-  latencia: string
-  costo: string
-}
-
-const STATUS_CONFIG: Record<string, string> = {
+const STATUS_COLOR: Record<string, string> = {
   'pasó guards': '#00C389',
   'plan creado': '#00C389',
   'Hey Pro sugerido': '#00C389',
@@ -21,101 +9,85 @@ const STATUS_CONFIG: Record<string, string> = {
   'guardrail block': '#EF4444',
 }
 
-interface TracesTableProps {
-  rows: HookTraceRow[]
+function statusColor(s: string) {
+  if (!s) return '#6B7280'
+  if (s.includes('atípica') || s.includes('alerta') || s.includes('warning')) return '#FF8C42'
+  if (s.includes('block') || s.includes('error') || s.includes('fail')) return '#EF4444'
+  return '#00C389'
 }
 
-export function TracesTable({ rows }: TracesTableProps) {
-  const [isConnected, setIsConnected] = useState(true)
+const DEMO_ROWS: TraceRow[] = [
+  { timestamp: '03:47:12', user_id: 'USR-00415', query: 'Transferencia $100K · cuenta nueva', status_label: 'pasó guards', latency_ms: 967, estimated_cost: 0.006 },
+  { timestamp: '03:45:48', user_id: 'USR-00108', query: 'Reestructura de deuda', status_label: 'plan creado', latency_ms: 617, estimated_cost: 0.005 },
+  { timestamp: '03:42:03', user_id: 'USR-00001', query: 'Inversiones — empezar con poco', status_label: 'Hey Pro sugerido', latency_ms: 549, estimated_cost: 0.004 },
+  { timestamp: '03:40:51', user_id: 'USR-08821', query: 'Consulta de balance', status_label: 'ok', latency_ms: 423, estimated_cost: 0.003 },
+]
 
-  // Convertir las rows del hook a formato de display
-  const traces = rows.map((row, idx) => ({
-    id: `${idx}-${row.timestamp}`,
-    hora: row.timestamp,
-    usuario: row.user_id,
-    query: row.query,
-    status: `${row.status_label === 'ok' ? '✓' : row.status_label.includes('atípica') ? '⚠' : row.status_label === 'guardrail block' ? '✗' : '✓'} ${row.status_label}`,
-    statusColor: STATUS_CONFIG[row.status_label] || '#6B7280',
-    latencia: `${row.latency_ms}ms`,
-    costo: `$${row.estimated_cost.toFixed(3)}`,
-  })) as DisplayTraceRow[]
+export function TracesTable({ rows }: { rows: TraceRow[] }) {
+  const data = rows?.length > 0 ? rows : DEMO_ROWS
 
-  // Simular ping de conexión
-  useEffect(() => {
-    setIsConnected(true)
-  }, [])
+  const th = { color: '#484F58', fontSize: '10px', fontWeight: 700,
+               textTransform: 'uppercase' as const, letterSpacing: '0.08em',
+               padding: '8px 12px', textAlign: 'left' as const, fontFamily: 'Inter, sans-serif' }
+  const td = { padding: '10px 12px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }
 
   return (
-    <div
-      className="rounded-xl border border-[#21262D] overflow-hidden"
-      style={{ background: '#161B22' }}
-    >
+    <div style={{ background: '#161B22', borderRadius: '14px',
+                  border: '1px solid #21262D', overflow: 'hidden' }}>
       {/* Header */}
-      <div className="px-5 py-4 border-b border-[#21262D] flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{
-              background: isConnected ? '#00C389' : '#6B7280',
-              animation: isConnected ? 'livePulse 1.4s infinite' : 'none',
-            }}
-          />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#E2E8F0]">
-            ● ÚLTIMOS TRACES · STREAMING
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid #21262D',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%',
+                         background: '#00C389', display: 'inline-block',
+                         animation: 'livePulse 2s ease-in-out infinite' }} />
+          <span style={{ color: '#E2E8F0', fontSize: '11px', fontWeight: 700,
+                         textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Últimos Traces · Streaming
           </span>
         </div>
-        <span className="text-[10px] font-mono text-[#6B7280]">actualiza cada 2s</span>
+        <span style={{ color: '#484F58', fontSize: '10px' }}>actualiza cada 2s</span>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
-        <table className="w-full">
+      {/* Tabla */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="bg-[#0D1117]">
-              <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                HORA
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                USUARIO
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                QUERY
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                STATUS
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                LATENCIA
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                COSTO
-              </th>
+            <tr style={{ borderBottom: '1px solid #21262D' }}>
+              {['Hora','Usuario','Query','Status','Latencia','Costo'].map(h => (
+                <th key={h} style={th}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {traces.map((trace, idx) => (
-              <tr
-                key={trace.id}
-                className="border-t border-[#21262D] hover:bg-[#1C2128] transition-colors"
-                style={{ animation: `rowSlideDown 300ms ease-out ${idx * 30}ms backwards` }}
-              >
-                <td className="px-5 py-3 text-[11px] font-mono text-[#6B7280]">{trace.hora}</td>
-                <td className="px-5 py-3">
-                  <span
-                    className="text-[11px] font-medium px-2.5 py-1 rounded-full"
-                    style={{ background: '#21262D', color: '#8B949E' }}
-                  >
-                    {trace.usuario}
+            {data.map((row: TraceRow, i: number) => (
+              <tr key={i} className="row-in"
+                  style={{ borderBottom: '1px solid rgba(33,38,45,0.6)',
+                           transition: 'background 150ms' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <td style={{ ...td, fontFamily: 'monospace', color: '#6B7280' }}>{row.timestamp}</td>
+                <td style={td}>
+                  <span style={{ background: '#21262D', color: '#8B949E', fontSize: '11px',
+                                 padding: '2px 7px', borderRadius: '5px', fontFamily: 'monospace' }}>
+                    {row.user_id}
                   </span>
                 </td>
-                <td className="px-5 py-3 text-[13px] text-[#E2E8F0] max-w-[300px] truncate">
-                  {trace.query}
+                <td style={{ ...td, color: '#E2E8F0', maxWidth: '280px' }}>
+                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis',
+                                 whiteSpace: 'nowrap' }}>{row.query}</span>
                 </td>
-                <td className="px-5 py-3 text-[12px] font-medium" style={{ color: trace.statusColor }}>
-                  {trace.status}
+                <td style={td}>
+                  <span style={{ color: statusColor(row.status_label), fontWeight: 500 }}>
+                    ✓ {row.status_label}
+                  </span>
                 </td>
-                <td className="px-5 py-3 text-[11px] font-mono text-[#00C389]">{trace.latencia}</td>
-                <td className="px-5 py-3 text-[11px] font-mono text-[#6B7280]">{trace.costo}</td>
+                <td style={{ ...td, fontFamily: 'monospace', color: '#00C389' }}>
+                  {row.latency_ms}ms
+                </td>
+                <td style={{ ...td, fontFamily: 'monospace', color: '#6B7280' }}>
+                  ${typeof row.estimated_cost === 'number' ? row.estimated_cost.toFixed(3) : row.estimated_cost}
+                </td>
               </tr>
             ))}
           </tbody>

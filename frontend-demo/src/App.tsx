@@ -1,22 +1,12 @@
 import { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, MessageCircle, BarChart3 } from 'lucide-react'
 import { useSSE } from './hooks/useSSE'
 import { useUsers } from './hooks/useUsers'
 import { ChatPanel } from './components/chat/ChatPanel'
 import { FichaSidebar } from './components/ficha/FichaSidebar'
 import { TracePanel } from './components/trace/TracePanel'
 import { ObsDashboard } from './components/obs/ObsDashboard'
-import { NotificationToast } from './components/notifications/NotificationToast'
 import LoginScreen from './components/login/LoginScreen'
-
-interface DemoUser {
-  id: string
-  name: string
-  user_id: string
-  avatar: string
-  segment_labels: string[]
-}
+import { DemoUser } from './types'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -47,113 +37,69 @@ export default function App() {
   }
 
   if (!selectedUser) {
-    return <div className="flex items-center justify-center h-screen bg-[#0D1117]">Loading...</div>
-  }
-
-  const mockSpeech = {
-    transcript: '',
-    isListening: false,
-    startListening: () => {},
-    stopListening: () => {}
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+                         height: '100vh', background: '#0D1117', color: '#E2E8F0', fontFamily: 'Inter, sans-serif' }}>Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-[#0D1117] flex flex-col font-sans overflow-hidden">
-      {/* Header */}
-      <header className="h-14 px-5 flex items-center justify-between bg-[#0D1117] border-b border-[#21262D] shrink-0" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.30)' }}>
-        <div className="flex items-center gap-6">
-          {/* Logo & Branding */}
-          <div className="flex items-center gap-2 select-none">
-            <img
-              src="/hey-banco-logo.svg"
-              alt="Hey Banco"
-              className="h-5 w-auto object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-extrabold text-[15px] tracking-tighter text-white">havi</span>
-              <span className="text-[#00C389] text-xs font-bold px-1 py-0.5 rounded" style={{ background: 'rgba(0,195,137,0.15)' }}>
-                ✦
-              </span>
-            </div>
-            {/* Separator */}
-            <div className="w-px h-5 bg-[#21262D] ml-1" />
-          </div>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column',
+                  background: '#0D1117', color: '#E2E8F0', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
 
-          {/* Nav Tabs */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setActiveView('chat')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200`}
-              style={{
-                borderRadius: '8px',
-                background: activeView === 'chat' ? '#00C389' : 'transparent',
-                color: activeView === 'chat' ? '#0D1117' : '#8B949E'
-              }}
-              onMouseEnter={(e) => {
-                if (activeView !== 'chat') {
-                  (e.currentTarget as HTMLElement).style.color = '#E2E8F0'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeView !== 'chat') {
-                  (e.currentTarget as HTMLElement).style.color = '#8B949E'
-                }
-              }}
-            >
-              <MessageCircle size={13} />
-              Chat
-            </button>
-            <button
-              onClick={() => setActiveView('obs')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200`}
-              style={{
-                borderRadius: '8px',
-                background: activeView === 'obs' ? '#00C389' : 'transparent',
-                color: activeView === 'obs' ? '#0D1117' : '#8B949E'
-              }}
-              onMouseEnter={(e) => {
-                if (activeView !== 'obs') {
-                  (e.currentTarget as HTMLElement).style.color = '#E2E8F0'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeView !== 'obs') {
-                  (e.currentTarget as HTMLElement).style.color = '#8B949E'
-                }
-              }}
-            >
-              <BarChart3 size={13} />
-              Obs
-            </button>
-          </div>
-
-          {/* Datathon Badge */}
-          <div className="hidden md:flex items-center gap-1 h-7 px-2.5 rounded-full" style={{ background: 'rgba(0,195,137,0.10)', border: '1px solid rgba(0,195,137,0.30)' }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-[#00C389] animate-pulse" />
-            <span className="text-[10.5px] font-semibold tracking-wider text-[#00C389]">DATATHON 2026</span>
-          </div>
+      {/* ── HEADER ────────────────────────── */}
+      <header style={{
+        height: '52px', flexShrink: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', padding: '0 16px',
+        background: '#0D1117', borderBottom: '1px solid #21262D', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/hey-banco-logo.svg" alt="Hey Banco"
+               style={{ height: '24px', width: 'auto' }}
+               onError={e => (e.currentTarget.style.display = 'none')} />
+          <span style={{ color: '#00C389', fontWeight: 800, fontSize: '16px',
+                         letterSpacing: '-0.02em' }}>havi</span>
+          <span style={{ background: 'rgba(0,195,137,0.15)', color: '#00C389',
+                         fontSize: '10px', padding: '2px 5px', borderRadius: '5px', fontWeight: 700 }}>✦</span>
+          <div style={{ width: '1px', height: '24px', background: '#21262D', marginLeft: '8px' }} />
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-4">
+        {/* Tabs Chat / Obs */}
+        <div style={{ display: 'flex', gap: '4px', background: '#161B22',
+                      borderRadius: '10px', padding: '3px' }}>
+          {(['chat','obs'] as const).map(v => (
+            <button key={v} onClick={() => setActiveView(v)}
+              style={{
+                padding: '5px 14px', borderRadius: '8px', border: 'none',
+                cursor: 'pointer', fontSize: '12px', fontWeight: 600,
+                transition: 'all 180ms',
+                background: activeView === v ? '#00C389' : 'transparent',
+                color: activeView === v ? '#0D1117' : '#8B949E'
+              }}>
+              {v === 'chat' ? '💬 Chat' : '📊 Obs'}
+            </button>
+          ))}
+        </div>
+
+        {/* Derecha: toggle + user picker */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {activeView === 'chat' && (
             <>
-              <label className="flex items-center gap-2 text-sm text-[#8B949E] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={personalizationEnabled}
-                  onChange={(e) => setPersonalizationEnabled(e.target.checked)}
-                  className="w-4 h-4 rounded bg-[#161B22] border border-[#21262D] cursor-pointer"
-                />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px',
+                              cursor: 'pointer', fontSize: '12px', color: '#8B949E' }}>
+                <input type="checkbox" checked={personalizationEnabled}
+                       onChange={e => setPersonalizationEnabled(e.target.checked)}
+                       style={{ accentColor: '#00C389' }} />
                 Personalización
               </label>
-              <div className="w-px h-6 bg-[#21262D]" />
+              <div style={{ width: '1px', height: '24px', background: '#21262D' }} />
               <select
                 value={selectedUser.id}
                 onChange={(e) => handleUserChange(e.target.value)}
-                className="px-3 py-1.5 rounded-full bg-[#161B22] border border-[#21262D] text-[12px] text-[#E2E8F0] cursor-pointer hover:border-[#00C389] transition-colors"
-              >
+                style={{
+                  padding: '6px 12px', borderRadius: '12px', background: '#161B22',
+                  border: '1px solid #21262D', fontSize: '12px', color: '#E2E8F0',
+                  cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                }}>
                 {users?.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -165,81 +111,63 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
-        <div className={`h-full grid gap-0 ${personalizationEnabled ? 'lg:grid-cols-[320px_1fr_340px]' : 'lg:grid-cols-[1fr_340px]'}`}>
-          <AnimatePresence mode="wait">
-            {activeView === 'chat' ? (
-              <>
-                {/* Left Column: Ficha Sidebar (visible when personalization ON) */}
-                {personalizationEnabled && (
-                  <FichaSidebar
-                    user={selectedUser}
-                    ficha={ficha}
-                    visible={personalizationEnabled}
-                  />
-                )}
+      {/* ── VISTA CHAT ────────────────────── */}
+      {activeView === 'chat' && (
+        <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-                {/* Center Column: Chat */}
-                <motion.section
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="h-full flex flex-col overflow-hidden relative border-r border-[#21262D]"
-                >
-                  <ChatPanel
-                    user={selectedUser}
-                    messages={messages}
-                    isStreaming={isStreaming}
-                    onSendMessage={handleSend}
-                    pendingToolCall={null}
-                    onConfirmToolCall={() => {}}
-                    speech={mockSpeech}
-                  />
-                </motion.section>
+          {/* Ficha Sidebar izquierda */}
+          {personalizationEnabled && (
+            <div style={{ width: '240px', flexShrink: 0, overflowY: 'auto',
+                          borderRight: '1px solid #21262D', background: '#161B22' }}>
+              <FichaSidebar ficha={ficha} visible={personalizationEnabled} user={selectedUser} />
+            </div>
+          )}
 
-                {/* Right Column: Trace Panel */}
-                <motion.aside
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.2 }}
-                  className="border-l border-[#21262D] bg-[#0D1117] overflow-hidden hidden lg:block"
-                >
-                  <TracePanel trace={currentTrace} isStreaming={isStreaming} profile={profile} />
-                </motion.aside>
-              </>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="col-span-full h-full overflow-hidden"
-              >
-                <ObsDashboard />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
+          {/* Chat central */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
+                        overflow: 'hidden', borderRight: '1px solid #21262D' }}>
+            <ChatPanel
+              user={selectedUser}
+              messages={messages}
+              isStreaming={isStreaming}
+              onSendMessage={handleSend}
+              speech={{}}
+            />
+          </div>
 
-      {/* Footer */}
-      <footer className="h-8 px-5 flex items-center justify-between bg-[#0D1117] border-t border-[#21262D] shrink-0 text-[10.5px] text-[#6B7280]">
-        <div className="flex items-center gap-3">
-          <span className="font-mono">datathon · 2026</span>
-          <div className="w-0.5 h-0.5 rounded-full bg-[#21262D]" />
+          {/* Trace Panel derecha */}
+          <div style={{ width: '340px', flexShrink: 0, overflowY: 'auto',
+                        borderLeft: '1px solid #21262D', background: '#161B22' }}>
+            <TracePanel trace={currentTrace} isStreaming={isStreaming} profile={profile} />
+          </div>
+
+        </main>
+      )}
+
+      {/* ── VISTA OBSERVABILIDAD ──────────── */}
+      {activeView === 'obs' && <ObsDashboard />}
+
+      {/* ── FOOTER ────────────────────── */}
+      <footer style={{
+        height: '32px', flexShrink: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', padding: '0 16px',
+        background: '#0D1117', borderTop: '1px solid #21262D',
+        fontSize: '10.5px', color: '#6B7280'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontFamily: 'monospace' }}>datathon · 2026</span>
+          <div style={{ width: '2px', height: '2px', borderRadius: '50%', background: '#21262D' }} />
           <span>Havi v2.4.1</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#00C389]" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00C389' }} />
             <span>SSE conectado</span>
           </div>
-          <div className="font-mono">/chat/stream</div>
+          <div style={{ fontFamily: 'monospace' }}>/chat/stream</div>
         </div>
       </footer>
+
     </div>
   )
 }

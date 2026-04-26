@@ -1,4 +1,3 @@
-import { Play } from 'lucide-react'
 import { EvalMetrics } from '../../hooks/useMetrics'
 
 interface RagMetric {
@@ -11,7 +10,7 @@ interface EvalPanelProps {
 }
 
 export function EvalPanel({ evals }: EvalPanelProps) {
-  const ragMetrics: RagMetric[] = [
+  const metrics: RagMetric[] = [
     { name: 'Faithfulness', value: Math.round((evals?.faithfulness || 0.87) * 100) },
     { name: 'Answer Relevancy', value: Math.round((evals?.answer_relevancy || 0.92) * 100) },
     { name: 'Context Precision', value: Math.round((evals?.context_precision || 0.78) * 100) },
@@ -19,71 +18,90 @@ export function EvalPanel({ evals }: EvalPanelProps) {
     { name: 'F1 Score', value: Math.round((evals?.f1_score || 0.89) * 100) },
   ]
 
-  const lastRunTime = evals?.last_run ? new Date(evals.last_run).toLocaleTimeString('es-ES', { hour12: false }) : new Date().toLocaleTimeString('es-ES', { hour12: false })
-
   return (
-    <div className="grid grid-cols-2 gap-6">
-      {/* RAG Evals Panel */}
-      <div
-        className="rounded-xl border border-[#21262D] p-5"
-        style={{ background: '#161B22' }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[#00C389] mb-1">
-              RAG EVALS
-            </div>
-            <div className="text-[10px] text-[#6B7280]">Último run: {lastRunTime}</div>
-          </div>
-        </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontFamily: 'Inter, sans-serif' }}>
 
-        <div className="space-y-4 mb-5">
-          {ragMetrics.map((metric) => (
-            <div key={metric.name}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[12px] text-[#E2E8F0] font-medium">{metric.name}</span>
-                <span className="text-[12px] font-bold text-[#00C389]">{metric.value}%</span>
+      {/* RAG Evals */}
+      <div style={{ background: '#161B22', borderRadius: '14px', padding: '20px',
+                    border: '1px solid #21262D', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ color: '#8B7CF8', fontSize: '10px', fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+            RAG Evals
+          </p>
+          {evals?.last_run && (
+            <span style={{ color: '#484F58', fontSize: '10px' }}>
+              Último run: {new Date(evals.last_run).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {metrics.map(m => (
+            <div key={m.name}>
+              <div style={{ display: 'flex', justifyContent: 'space-between',
+                            marginBottom: '4px' }}>
+                <span style={{ color: '#8B949E', fontSize: '11px' }}>{m.name}</span>
+                <span style={{ color: '#E2E8F0', fontSize: '11px', fontWeight: 600 }}>
+                  {m.value}%
+                </span>
               </div>
-              <div className="w-full h-1 bg-[#21262D] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#00C389] rounded-full transition-all duration-1000"
-                  style={{ width: `${metric.value}%` }}
-                />
+              <div style={{ height: '4px', background: '#21262D', borderRadius: '2px' }}>
+                <div style={{
+                  height: '100%', borderRadius: '2px', background: '#00C389',
+                  width: `${m.value}%`, transition: 'width 600ms ease'
+                }} />
               </div>
             </div>
           ))}
         </div>
-
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#00C389] text-[#00C389] text-[12px] font-medium rounded-lg hover:bg-[#00C389] hover:text-[#0D1117] transition-colors">
-          <Play size={12} />
-          Run Evals
+        <button style={{
+          width: '100%', padding: '9px', borderRadius: '9px', cursor: 'pointer',
+          background: 'transparent', border: '1px solid #21262D', color: '#8B949E',
+          fontSize: '12px', fontWeight: 500, transition: 'all 180ms'
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = '#00C389'
+          e.currentTarget.style.color = '#00C389'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = '#21262D'
+          e.currentTarget.style.color = '#8B949E'
+        }}>
+          ▶ Run Evals
         </button>
       </div>
 
-      {/* Proyección Mensual Panel */}
-      <div
-        className="rounded-xl border p-5"
-        style={{
-          background: 'rgba(0,195,137,0.06)',
-          borderColor: 'rgba(0,195,137,0.20)',
-        }}
-      >
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-[#00C389] mb-4">
-          ● PROYECCIÓN MENSUAL
-        </div>
-
-        <div className="mb-6">
-          <p className="text-[14px] font-medium text-[#E2E8F0] leading-relaxed">
-            <span className="text-[#00C389]">$2.8M</span> ingresos · <span className="text-[#00C389]">+$15M</span> retención ·{' '}
-            <span className="text-[#EF4444]">$3.6M</span> fraude prevenido
+      {/* Proyección */}
+      <div style={{
+        borderRadius: '14px', padding: '24px',
+        background: 'rgba(0,195,137,0.04)',
+        border: '1px solid rgba(0,195,137,0.2)',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%',
+                           background: '#00C389', display: 'inline-block' }} />
+            <span style={{ color: '#00C389', fontSize: '10px', fontWeight: 700,
+                           textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Proyección Mensual
+            </span>
+          </div>
+          <p style={{ color: '#E2E8F0', fontSize: '14px', fontWeight: 500, lineHeight: 1.5, margin: 0 }}>
+            <span style={{ color: '#00C389' }}>$2.8M</span> ingresos ·{' '}
+            <span style={{ color: '#00C389' }}>+$15M</span> retención ·{' '}
+            <span style={{ color: '#EF4444' }}>$3.6M</span> fraude prevenido
           </p>
         </div>
-
-        <div className="text-right">
-          <div className="text-[12px] text-[#6B7280] mb-1">Total impacto MXN</div>
-          <div className="text-[36px] font-black text-white tracking-tight">$21.4M</div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ color: '#484F58', fontSize: '11px', margin: '0 0 4px' }}>Total impacto MXN</p>
+          <p style={{ color: '#E2E8F0', fontSize: '40px', fontWeight: 800,
+                      letterSpacing: '-0.03em', margin: 0, lineHeight: 1 }}>
+            $21.4M
+          </p>
         </div>
       </div>
+
     </div>
   )
 }
