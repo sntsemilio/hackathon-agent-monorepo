@@ -27,7 +27,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",
@@ -68,6 +68,7 @@ class Settings(BaseSettings):
 
     # LLMs (LiteLLM router)
     ANTHROPIC_API_KEY: str = ""
+    OLLAMA_API_BASE: str = "http://localhost:11434"
     GUARDRAIL_MODEL: str = "gpt-4o-mini"
     SUMMARIZER_MODEL: str = "gpt-4o-mini"
     PROFILER_MODEL: str = "gpt-4o-mini"

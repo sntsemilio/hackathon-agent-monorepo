@@ -47,6 +47,11 @@ class _LiteLLMClient:
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        settings = get_settings()
+        if self.model.startswith(("ollama/", "ollama_chat/")):
+            kwargs["api_base"] = settings.OLLAMA_API_BASE
+            if response_format is not None:
+                kwargs["format"] = "json"
         if response_format is not None:
             kwargs["response_format"] = response_format
 

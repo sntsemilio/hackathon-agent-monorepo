@@ -115,6 +115,8 @@ hackathon-agent-monorepo/
 cp .env.example .env
 ```
 
+For local testing without external API keys, the example configuration points every LLM role at a small Ollama model (`qwen2.5:1.5b-instruct`). The first Docker Compose run will download that model automatically.
+
 Set at minimum:
 
 | Variable | Purpose |
