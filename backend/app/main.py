@@ -7,6 +7,9 @@ Bootstrap del FastAPI app del agente Havi.
 from __future__ import annotations
 
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()  # Carga .env al iniciar
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +20,6 @@ import os
 from app.api.routes import router as chat_router, lifespan
 from app.api.admin import router as admin_router
 from app.api.users import router as users_router
-from app.api.routes import router as chat_router, admin_router, lifespan
 from app.api.ws import router as ws_router
 from app.core.config import get_settings
 

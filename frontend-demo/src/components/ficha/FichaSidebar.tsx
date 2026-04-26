@@ -68,16 +68,16 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
 
       {/* Conductual */}
       {card('#6B4EFF', 'Conductual',
-            ficha?.offer_strategy ?? 'Análisis en curso',
+            ficha?.segmentos?.conductual?.label ?? ficha?.segmentos?.conductual?.name ?? 'Análisis en curso',
             undefined)}
 
       {/* Transaccional */}
       {card('#00C389', 'Transaccional',
-            `${ficha?.gasto ?? 0} MXN/mes`,
+            ficha?.segmentos?.transaccional?.label ?? ficha?.segmentos?.transaccional?.name ?? '0 MXN/mes',
             undefined,
-            ficha?.top_categories && ficha.top_categories.length > 0 ? (
+            ficha?.segmentos?.transaccional?.top_spending_categories && ficha.segmentos.transaccional.top_spending_categories.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                {ficha.top_categories.slice(0, 3).map((c: string) => (
+                {ficha.segmentos.transaccional.top_spending_categories.slice(0, 3).map((c: string) => (
                   <span key={c} style={{
                     fontSize: '9px', padding: '2px 6px', borderRadius: '5px',
                     background: 'rgba(0,195,137,0.12)', color: '#00C389'
@@ -89,7 +89,7 @@ export function FichaSidebar({ user, ficha, visible }: FichaSidebarProps) {
 
       {/* Salud Financiera */}
       {card(riskColor, 'Salud Financiera',
-            `Score ${ficha?.health_score ?? 0}`,
+            ficha?.segmentos?.salud_financiera?.label ?? ficha?.segmentos?.salud_financiera?.name ?? 'Score 0',
             undefined,
             ficha?.risk_level === 'high' ? (
               <span style={{

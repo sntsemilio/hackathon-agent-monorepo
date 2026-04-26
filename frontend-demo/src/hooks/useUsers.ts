@@ -72,23 +72,37 @@ export function useUsers() {
 /**
  * Fallback demo users for when backend is unavailable.
  * Same data as backend/app/api/users.py DEMO_USERS, transformed to frontend format.
+ *
+ * NOTE: `id` must equal `user_id` so handleUserChange (which uses u.id) works
+ * when the backend is offline and users come from this array.
+ *
+ * `ficha_mock.segmentos` must mirror the structure the backend returns via SSE
+ * so FichaSidebar renders segment cards correctly even without a live request.
  */
 const FALLBACK_USERS: DemoUser[] = [
   {
+    id: 'USR-00001',
     user_id: 'USR-00001',
     name: 'Carla Mendoza',
     avatar: '👩‍💻',
     description: 'Actividad atípica · Presión financiera',
     segment: 'actividad_atipica_alerta',
+    segment_labels: ['actividad_atipica_alerta', 'presion_financiera'],
     theme_color: '#00C389',
     sample_questions: [
-      { text: '¿Por qué me bloquearon una transacción?' },
-      { text: '¿Cómo puedo desbloquear mi tarjeta?' },
+      { text: 'Verificar identidad' },
       { text: '¿Cuál es mi saldo actual?' },
-      { text: '¿Mis datos están seguros?' },
+      { text: '¿Cuáles son mis últimos movimientos?' },
+      { text: '¿Cómo puedo hacer una transferencia?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00001',
       segment: 'actividad_atipica_alerta',
+      segmentos: {
+        conductual: { name: 'actividad_atipica_alerta', label: 'Actividad atípica' },
+        transaccional: { name: 'comprador_presencial_frecuente', label: 'Comprador presencial', top_spending_categories: ['Retail', 'Supermercado', 'Gasolina'] },
+        salud_financiera: { name: 'presion_financiera', label: 'Presión financiera', offer_strategy: 'Educación financiera, no venta agresiva' },
+      },
       digitalizacion: 'media',
       gasto: 3500,
       ahorro: 2100,
@@ -101,11 +115,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00042',
     user_id: 'USR-00042',
     name: 'Javier López',
     avatar: '👨‍💼',
     description: 'Profesional · Inversor activo',
     segment: 'profesional_prospero_inversor',
+    segment_labels: ['profesional_prospero_inversor', 'activo_saludable'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Cuál es mi rendimiento en inversiones este mes?' },
@@ -114,7 +130,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Puedo abrir un fondo indexado?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00042',
       segment: 'profesional_prospero_inversor',
+      segmentos: {
+        conductual: { name: 'profesional_prospero_inversor', label: 'Profesional próspero' },
+        transaccional: { name: 'ahorrador_inversor', label: 'Ahorrador inversor', top_spending_categories: ['Inversiones', 'Restaurantes', 'Viajes'] },
+        salud_financiera: { name: 'activo_saludable', label: 'Activo saludable', offer_strategy: 'Productos premium, inversión y patrimonio' },
+      },
       digitalizacion: 'alta',
       gasto: 12500,
       ahorro: 45000,
@@ -127,11 +149,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00108',
     user_id: 'USR-00108',
     name: 'Ana Torres',
     avatar: '👩‍🎓',
     description: 'Joven digital · Hey Pro',
     segment: 'joven_digital_hey_pro',
+    segment_labels: ['joven_digital_hey_pro', 'en_construccion_crediticia'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Cuánto cashback acumulé este mes?' },
@@ -140,7 +164,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Puedo subir mi límite de crédito?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00108',
       segment: 'joven_digital_hey_pro',
+      segmentos: {
+        conductual: { name: 'joven_digital_hey_pro', label: 'Joven digital Hey Pro' },
+        transaccional: { name: 'consumidor_digital_ocio', label: 'Consumidor digital', top_spending_categories: ['Streaming', 'Juegos', 'Comida a domicilio'] },
+        salud_financiera: { name: 'en_construccion_crediticia', label: 'En construcción crediticia', offer_strategy: 'Construcción de historial y cashback' },
+      },
       digitalizacion: 'muy_alta',
       gasto: 4200,
       ahorro: 8500,
@@ -153,11 +183,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00205',
     user_id: 'USR-00205',
     name: 'Roberto Sánchez',
     avatar: '👨‍🔧',
     description: 'Cliente estable · Perfil promedio',
     segment: 'cliente_promedio_estable',
+    segment_labels: ['cliente_promedio_estable', 'activo_saludable'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Cuál es mi saldo?' },
@@ -166,7 +198,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Cómo activo Hey Pro?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00205',
       segment: 'cliente_promedio_estable',
+      segmentos: {
+        conductual: { name: 'cliente_promedio_estable', label: 'Cliente estable' },
+        transaccional: { name: 'pagador_servicios_hogar', label: 'Pagador servicios', top_spending_categories: ['Servicios', 'Supermercado', 'Educación'] },
+        salud_financiera: { name: 'activo_saludable', label: 'Activo saludable', offer_strategy: 'Upsell gradual: Hey Pro, seguros, inversión básica' },
+      },
       digitalizacion: 'media',
       gasto: 5800,
       ahorro: 12000,
@@ -179,11 +217,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00310',
     user_id: 'USR-00310',
     name: 'María González',
     avatar: '👩‍💼',
     description: 'Estrés financiero · Apoyo prioritario',
     segment: 'usuario_estres_financiero',
+    segment_labels: ['usuario_estres_financiero', 'presion_financiera'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Puedo reestructurar mi deuda?' },
@@ -192,7 +232,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Puedo pausar un pago este mes?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00310',
       segment: 'usuario_estres_financiero',
+      segmentos: {
+        conductual: { name: 'usuario_estres_financiero', label: 'Estrés financiero' },
+        transaccional: { name: 'pagador_servicios_hogar', label: 'Pagador servicios', top_spending_categories: ['Renta', 'Servicios', 'Farmacia'] },
+        salud_financiera: { name: 'presion_financiera', label: 'Presión financiera', offer_strategy: 'Reestructuración de deuda, planes de pago, no venta' },
+      },
       digitalizacion: 'baja',
       gasto: 6500,
       ahorro: 1200,
@@ -205,11 +251,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00415',
     user_id: 'USR-00415',
     name: 'Carlos Mendivil',
     avatar: '🧑‍💻',
     description: 'Usuario básico · Nuevo cliente',
     segment: 'usuario_basico_bajo_enganche',
+    segment_labels: ['usuario_basico_bajo_enganche', 'solido_sin_credito'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Cómo funciona la cuenta Hey?' },
@@ -218,7 +266,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Puedo solicitar una tarjeta de crédito?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00415',
       segment: 'usuario_basico_bajo_enganche',
+      segmentos: {
+        conductual: { name: 'usuario_basico_bajo_enganche', label: 'Usuario básico' },
+        transaccional: { name: 'comprador_presencial_frecuente', label: 'Comprador presencial', top_spending_categories: ['Supermercado', 'Farmacia', 'Transporte'] },
+        salud_financiera: { name: 'solido_sin_credito', label: 'Sólido sin crédito', offer_strategy: 'Primer crédito, ahorro automatizado, educación' },
+      },
       digitalizacion: 'media',
       gasto: 2100,
       ahorro: 3500,
@@ -231,11 +285,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00520',
     user_id: 'USR-00520',
     name: 'Daniela Ruiz',
     avatar: '👩‍🎨',
     description: 'Empresaria · Alto volumen operativo',
     segment: 'empresario_alto_volumen',
+    segment_labels: ['empresario_alto_volumen', 'activo_saludable'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Cómo configuro nómina para mi empresa?' },
@@ -244,7 +300,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Cómo manejo transferencias de alto volumen?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00520',
       segment: 'empresario_alto_volumen',
+      segmentos: {
+        conductual: { name: 'empresario_alto_volumen', label: 'Empresario activo' },
+        transaccional: { name: 'viajero_internacional', label: 'Viajero internacional', top_spending_categories: ['Proveedores', 'Viajes de negocios', 'Software'] },
+        salud_financiera: { name: 'activo_saludable', label: 'Activo saludable', offer_strategy: 'Cuenta empresarial, nómina, crédito PYME, facturación' },
+      },
       digitalizacion: 'muy_alta',
       gasto: 45000,
       ahorro: 80000,
@@ -257,11 +319,13 @@ const FALLBACK_USERS: DemoUser[] = [
     },
   },
   {
+    id: 'USR-00630',
     user_id: 'USR-00630',
     name: 'Luis Fernández',
     avatar: '👨‍🌾',
     description: 'Ahorrador · Construyendo historial',
     segment: 'en_construccion_crediticia',
+    segment_labels: ['en_construccion_crediticia', 'consumidor_digital_ocio'],
     theme_color: '#00C389',
     sample_questions: [
       { text: '¿Cómo mejoro mi score buró?' },
@@ -270,7 +334,13 @@ const FALLBACK_USERS: DemoUser[] = [
       { text: '¿Cuál es mi historial de pagos reciente?' },
     ],
     ficha_mock: {
+      user_id: 'USR-00630',
       segment: 'en_construccion_crediticia',
+      segmentos: {
+        conductual: { name: 'en_construccion_crediticia', label: 'En construcción' },
+        transaccional: { name: 'consumidor_digital_ocio', label: 'Consumidor digital', top_spending_categories: ['Entretenimiento', 'Comida', 'Ropa'] },
+        salud_financiera: { name: 'en_construccion_crediticia', label: 'Construyendo historial', offer_strategy: 'Tarjeta garantizada, reporte de pagos, educación' },
+      },
       digitalizacion: 'media',
       gasto: 3800,
       ahorro: 15000,

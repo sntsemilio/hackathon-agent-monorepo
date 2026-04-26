@@ -64,21 +64,52 @@ class VectorStore:
     async def hybrid_search(self, query: str, top_k: int = 5,
                             filter_expr: Optional[str] = None) -> List[Dict[str, Any]]:
         self._try_init()
-        if self._index is None or self._embedder is None or not query:
+        if not query:
             return []
+
+        # Try vector search first
+        if self._index is not None and self._embedder is not None:
+            try:
+                from redisvl.query import VectorQuery
+                vec = self._embedder.embed(query, as_buffer=True)
+                q = VectorQuery(
+                    vector=vec,
+                    vector_field_name="embedding",
+                    num_results=top_k,
+                    return_fields=["text", "title", "source"],
+                )
+                if filter_expr:
+                    q.set_filter(filter_expr)
+                result = await self._index.query(q)
+                return [dict(r) for r in result]
+            except Exception:
+                logger.warning("Vector search falló, usando fallback BM25")
+
+        # Fallback: simple text search in Redis
         try:
-            from redisvl.query import VectorQuery
-            vec = self._embedder.embed(query, as_buffer=True)
-            q = VectorQuery(
-                vector=vec,
-                vector_field_name="embedding",
-                num_results=top_k,
-                return_fields=["text", "title", "source"],
-            )
-            if filter_expr:
-                q.set_filter(filter_expr)
-            result = await self._index.query(q)
-            return [dict(r) for r in result]
+            from redis import Redis
+            r = Redis.from_url(self.settings.REDIS_URL, decode_responses=True)
+            keywords = query.lower().split()
+            matches = []
+
+            # Search all doc: keys
+            for key in r.scan_iter("doc:*"):
+                doc = r.hgetall(key)
+                text = doc.get("text", "").lower()
+                score = sum(1 for kw in keywords if kw in text)
+                if score > 0:
+                    matches.append({
+                        "id": key,
+                        "text": doc.get("text", ""),
+                        "title": doc.get("title", ""),
+                        "source": doc.get("source", ""),
+                        "score": score,
+                    })
+
+            r.close()
+            # Sort by score and return top_k
+            matches.sort(key=lambda x: x["score"], reverse=True)
+            return matches[:top_k]
         except Exception:
-            logger.exception("hybrid_search falló")
+            logger.exception("BM25 fallback también falló")
             return []

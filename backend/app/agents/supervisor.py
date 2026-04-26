@@ -122,9 +122,29 @@ def _route_after_guardrail(state: GlobalState) -> str:
 def _route_after_profiler(state: GlobalState) -> str:
     profile = state.get("profile") or {}
     intent = (profile.get("intent") or "").lower()
-    # Operaciones que requieren tool_ops (saldo, transferencia, etc.)
-    op_intents = {"saldo", "transferencia", "consulta_movimientos",
-                  "bloqueo_tarjeta", "pago"}
+    # Todas las operaciones bancarias que van a tool_ops
+    op_intents = {
+        # balance
+        "saldo", "balance", "cuanto tengo", "dinero disponible",
+        # transferencias
+        "transferencia", "transferir", "enviar dinero", "enviar",
+        # pagos
+        "pago", "pagar", "domiciliacion",
+        # movimientos
+        "movimiento", "consulta_movimientos", "historial", "ultimos gastos",
+        "ultimas compras", "extracto", "estado de cuenta",
+        # seguridad
+        "bloqueo_tarjeta", "bloqueo", "cancelar tarjeta", "reportar",
+        # verificacion de identidad (flujo demo para actividad_atipica)
+        "verificar", "verificacion", "verificación", "confirmar identidad",
+        "autenticar", "soy yo", "confirmo",
+        # productos específicos
+        "cashback", "puntos", "recompensa",
+        "inversion", "inversiones", "rendimiento", "portafolio", "fondo",
+        "ahorro", "ahorros", "meta de ahorro",
+        "limite", "cupo", "credito disponible",
+        "nomina", "nómina", "pagar empleados",
+    }
     if any(k in intent for k in op_intents):
         return "tool_ops"
     return "research"

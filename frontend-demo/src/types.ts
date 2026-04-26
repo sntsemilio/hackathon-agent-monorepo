@@ -54,6 +54,10 @@ export interface ChatMessage {
   action_cards?: ActionCard[]
   tool_call?: any
   node_traces?: TraceSpan[]
+  latency_ms?: number
+  tokens?: number
+  /** 'insight' = mensaje proactivo de Havi (estilo visual diferente) */
+  variant?: 'insight'
 }
 
 export type Message = ChatMessage
@@ -65,7 +69,24 @@ export interface ToolCallIntent {
   description?: string
 }
 
+export interface FichaSegmento {
+  name?: string
+  tone?: string
+  label?: string
+  offer_strategy?: string
+  top_spending_categories?: string[]
+  confidence?: number
+}
+
 export interface Ficha {
+  user_id?: string
+  segmentos?: {
+    conductual?: FichaSegmento
+    transaccional?: FichaSegmento
+    salud_financiera?: FichaSegmento
+  }
+  sugerencias_candidatas?: string[]
+  version?: string
   segment?: string
   digitalizacion?: string
   gasto?: number

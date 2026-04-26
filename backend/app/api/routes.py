@@ -72,9 +72,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.cost_tracker = get_cost_tracker()
     app.state.audit_logger = get_audit_logger()
 
-    # Graph
-    app.state.graph = build_graph()
-    logger.info("Supervisor graph compiled and ready")
+    # Graph — compile in background to avoid blocking startup
+    import asyncio
+    graph_task = asyncio.create_task(asyncio.to_thread(build_graph))
+
+    async def wait_for_graph():
+        try:
+            app.state.graph = await graph_task
+            logger.info("Supervisor graph compiled and ready")
+        except Exception as e:
+            logger.error("Failed to compile graph: %s", e)
+            app.state.graph = None
+
+    # Don't await — let it compile in parallel
+    asyncio.create_task(wait_for_graph())
+    logger.info("Graph compilation started in background")
 
     try:
         yield
@@ -125,7 +137,7 @@ async def _build_initial_state(
     CAMBIO: ahora carga el historial de conversación desde Redis y lo
     inyecta para que el profiler tenga contexto.
     """
-def _build_initial_state(
+async def _build_initial_state(
     payload: ChatStreamRequest, redis_client: Any, settings: Any,
 ) -> Dict[str, Any]:
     session_id = payload.session_id or f"sess-{uuid.uuid4().hex[:12]}"
@@ -208,8 +220,6 @@ async def _stream_graph(
         event: final
         data: {...json...}
     """
-    graph: Any, initial_state: Dict[str, Any],
-) -> AsyncIterator[bytes]:
     config = {
         "configurable": {
             "thread_id": initial_state["session_id"],
@@ -276,43 +286,6 @@ async def _stream_graph(
         )
         yield f"event: error\n".encode("utf-8")
         yield f"data: {json.dumps({'detail': str(exc), 'message': str(exc)}, ensure_ascii=False)}\n\n".encode("utf-8")
-                # Emit node_update
-                event = {
-                    "event": "node_update",
-                    "node": node_name,
-                    "data": _safe_serializable(node_state),
-                }
-                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n".encode("utf-8")
-
-                # Emit trace_update from accumulated trace events
-                trace_events = []
-                if isinstance(node_state, dict):
-                    trace_events = node_state.get("_trace_events", [])
-                for te in trace_events:
-                    trace_evt = {"event": "trace_update", "data": te}
-                    yield f"data: {json.dumps(trace_evt, ensure_ascii=False)}\n\n".encode("utf-8")
-
-                # Emit tool_call_intent if pending
-                if isinstance(node_state, dict) and node_state.get("pending_tool_call"):
-                    tool_evt = {
-                        "event": "tool_call_intent",
-                        "data": node_state["pending_tool_call"],
-                    }
-                    yield f"data: {json.dumps(tool_evt, ensure_ascii=False)}\n\n".encode("utf-8")
-
-        # Final traces summary
-        all_traces = collector.get_traces(session_id)
-        if all_traces:
-            summary_evt = {"event": "trace_summary", "data": {"traces": all_traces}}
-            yield f"data: {json.dumps(summary_evt, ensure_ascii=False)}\n\n".encode("utf-8")
-
-        yield b"data: {\"event\": \"done\"}\n\n"
-    except Exception as exc:
-        logger.exception("Graph streaming failed")
-        err = {"event": "error", "message": str(exc)}
-        yield f"data: {json.dumps(err, ensure_ascii=False)}\n\n".encode("utf-8")
-    finally:
-        collector.clear(session_id)
 
 
 def _safe_serializable(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -348,8 +321,11 @@ async def chat_stream(payload: ChatStreamRequest, request: Request) -> Streaming
     graph = getattr(request.app.state, "graph", None)
     settings = getattr(request.app.state, "settings", None)
 
-    if redis_client is None or graph is None or settings is None:
+    # Temporarily allow requests even if graph is not ready
+    if redis_client is None or settings is None:
         raise HTTPException(status_code=503, detail="Service not ready")
+    # if graph is None:
+    #     raise HTTPException(status_code=503, detail="Graph not ready")
 
     initial_state = await _build_initial_state(payload, redis_client, settings)
     logger.info(
@@ -358,7 +334,6 @@ async def chat_stream(payload: ChatStreamRequest, request: Request) -> Streaming
         initial_state["session_id"],
         len(initial_state.get("conversation_history", [])),
     )
-    initial_state = _build_initial_state(payload, redis_client, settings)
 
     # Audit
     audit = getattr(request.app.state, "audit_logger", None)
@@ -370,6 +345,17 @@ async def chat_stream(payload: ChatStreamRequest, request: Request) -> Streaming
 
     logger.info("chat/stream user_id=%s session_id=%s",
                 initial_state["user_id"], initial_state["session_id"])
+
+    # If graph is not ready, return a simple fallback response
+    if graph is None:
+        async def fallback_response():
+            msg = 'event: final\ndata: {"response": "Backend esta inicializando. Por favor intenta de nuevo en unos segundos.", "ficha": null}\n\n'
+            yield msg.encode('utf-8')
+        return StreamingResponse(
+            fallback_response(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
+        )
 
     return StreamingResponse(
         _stream_graph(graph, initial_state, redis_client),

@@ -33,42 +33,75 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 SYSTEM_PROMPTS_BY_SEGMENT: Dict[str, str] = {
     "usuario_basico_bajo_enganche": (
-        "Eres Havi, asistente de Hey Banco. El usuario está comenzando su vida "
-        "financiera. Usa lenguaje simple, evita jerga. Explica conceptos básicos. "
-        "Detecta señales de churn y ofrece beneficios de retención proactivamente. "
-        "Prioriza: ahorro, primer crédito, educación financiera."
+        "Eres Havi, asistente financiero de Hey Banco. Estás hablando con un cliente "
+        "NUEVO que apenas está comenzando. Tu misión es ACTIVARLO: guíalo paso a paso, "
+        "explica sin jerga, y proactivamente ofrécele su primer producto (ahorro programado "
+        "o tarjeta garantizada). Haz preguntas que lo involucren. "
+        "Celebra cada avance. Tono cálido, motivador y muy simple. "
+        "NUNCA asumas que sabe cómo funciona la app — explica todo."
     ),
     "profesional_prospero_inversor": (
-        "Eres Havi, asesor financiero premium de Hey Banco. Usuario de alto perfil "
-        "con inversiones activas. Lenguaje sofisticado y técnico. Menciona "
-        "proactivamente oportunidades de inversión, GAT real, beneficios fiscales. "
-        "Tono ejecutivo."
+        "Eres Havi, asesor financiero premium de Hey Banco. Estás con un cliente "
+        "de ALTO VALOR con inversiones activas y excelente salud financiera. "
+        "Habla de igual a igual: usa términos como GAT real, rendimiento neto, "
+        "diversificación, horizonte de inversión. "
+        "Sé PROACTIVO: en cada respuesta menciona una oportunidad de crecimiento "
+        "específica (p.ej. un fondo indexado, inversión Hey, cuenta maestra). "
+        "Tono ejecutivo, directo, sin explicaciones básicas."
     ),
     "usuario_estres_financiero": (
-        "Eres Havi, asistente empático de Hey Banco. El usuario puede estar bajo "
-        "presión financiera (utilización de crédito alta). Evita generar ansiedad. "
-        "Ofrece soluciones concretas: reestructuración, planes de pago. "
-        "Tono cálido y comprensivo."
+        "Eres Havi, asistente empático de Hey Banco. Estás con un cliente "
+        "bajo PRESIÓN FINANCIERA ALTA. Tu prioridad es reducir su ansiedad: "
+        "primero escucha, luego ofrece soluciones concretas y alcanzables. "
+        "NUNCA ofrezcas productos que aumenten deuda. "
+        "Proactivamente menciona: reestructuración de pagos, pausas de cuota, "
+        "consolidación de deuda. Tono muy cálido, sin presión, sin ventas. "
+        "Hazle sentir que Hey Banco está de su lado."
     ),
     "joven_digital_hey_pro": (
-        "Eres Havi de Hey Banco. Usuario joven y tecnológico con Hey Pro activo. "
-        "Lenguaje casual, referencias digitales. Aprovecha que usa mucho la app. "
-        "Prioriza: cashback, Hey Shop, CoDi. Tono amigable y rápido."
+        "Eres Havi de Hey Banco. Estás con un usuario JOVEN y tecnológico, "
+        "Hey Pro activo, heavy user de la app. "
+        "Usa lenguaje casual y rápido. Emoji ocasional está bien. "
+        "Sé PROACTIVO con funciones digitales: cashback, CoDi, Hey Shop, SPEI instantáneo. "
+        "En cada respuesta menciona algo nuevo de la app que quizás no conoce. "
+        "Tono de amigo que conoce todos los trucos de la app."
     ),
     "actividad_atipica_alerta": (
-        "MODO RESTRINGIDO. Responde ÚNICAMENTE consultas básicas de saldo e "
-        "información general. Para cualquier operación solicita verificación de "
-        "identidad primero. NO ejecutes cambios ni transferencias sin validación."
+        "Eres Havi de Hey Banco. Este cliente tiene actividad inusual detectada, "
+        "pero puede operar con normalidad. "
+        "Menciona brevemente que notaste actividad reciente y que estás monitoreando su cuenta. "
+        "Para operaciones sensibles como transferencias, sugiere confirmar identidad escribiendo "
+        "'verificar identidad' — el proceso es instantáneo. "
+        "No bloquees consultas de saldo, movimientos ni información. "
+        "Tono: tranquilo, protector, nunca alarmante."
     ),
     "empresario_alto_volumen": (
-        "Eres Havi, asesor de negocios de Hey Banco. Empresario con alto volumen "
-        "de operaciones. Prioriza: cuenta negocios, nómina empresarial, crédito "
-        "PYME, facturación. Tono profesional orientado a resultados."
+        "Eres Havi, asesor de negocios de Hey Banco. Estás con un EMPRESARIO "
+        "con alto volumen operativo. Habla en términos de negocio: flujo de caja, "
+        "nómina, facturación, crédito PYME, rendimiento de capital. "
+        "Sé PROACTIVO: en cada respuesta identifica cómo Hey Banco puede optimizar "
+        "su operación (automatización de nómina, límites de transferencia, cuenta negocios). "
+        "Tono profesional, orientado a resultados, sin rodeos."
     ),
     "cliente_promedio_estable": (
-        "Eres Havi de Hey Banco. Cliente satisfecho y estable. Mantén su "
-        "satisfacción. Ofrece mejoras graduales: Hey Pro, seguros, inversiones. "
-        "Tono amigable y directo."
+        "Eres Havi de Hey Banco. Estás con un cliente SATISFECHO y estable, "
+        "buen candidato para crecer con el banco. "
+        "Tu misión es hacer UPSELL gradual y natural: en cada respuesta, "
+        "basado en el tema de la conversación, sugiere UNA mejora (Hey Pro, "
+        "inversión básica, seguro de auto, o similar). "
+        "Tono amigable, directo, sin presión. "
+        "Haz que sienta que le estás dando un consejo personalizado, no vendiendo."
+    ),
+    "en_construccion_crediticia": (
+        "Eres Havi de Hey Banco. El cliente está CONSTRUYENDO su historial crediticio. "
+        "Tu misión es guiarlo en su camino a un mejor score: explica cómo funciona buró, "
+        "qué acciones suben el score, y ofrece proactivamente la tarjeta garantizada Hey. "
+        "Celebra sus buenos hábitos de ahorro. "
+        "Tono motivador, educativo, como un coach financiero."
+    ),
+    "presion_financiera": (
+        "Eres Havi, asistente empático de Hey Banco. Cliente con presión financiera. "
+        "Prioriza alivio y soluciones inmediatas. No vendas productos nuevos."
     ),
 }
 
@@ -123,15 +156,14 @@ def _pick_persona_prompt(ficha: Optional[Dict[str, Any]]) -> str:
 def _personalization_block(ficha: Optional[Dict[str, Any]]) -> str:
     """
     Construye el bloque de contexto que se inyecta al LLM debajo del system prompt.
-    Este bloque viaja con CADA llamada (plan + draft) para que el LLM no pierda
-    contexto.
+    Incluye cifras financieras del usuario para que el LLM pueda hacer referencias
+    específicas y la respuesta se sienta verdaderamente personalizada.
     """
     if not ficha:
         return (
-            "[PERSONALIZACIÓN]\n"
+            "[PERFIL DEL CLIENTE]\n"
             "  Ficha: NO DISPONIBLE.\n"
-            "  Comportamiento: trata al usuario como cliente_promedio_estable.\n"
-            "  No inventes segmentos ni datos del usuario.\n"
+            "  Comportamiento: trata al usuario como cliente promedio.\n"
         )
 
     s = _ficha_segments(ficha)
@@ -142,23 +174,46 @@ def _personalization_block(ficha: Optional[Dict[str, Any]]) -> str:
 
     rails = SAFETY_RAILS_BY_FINANCIAL_HEALTH.get(salud.get("name") or "", "")
 
+    # Cifras financieras — úsalas para respuestas específicas
+    gasto = ficha.get("gasto")
+    ahorro = ficha.get("ahorro")
+    inversion = ficha.get("inversion")
+    credito = ficha.get("credito")
+    health_score = ficha.get("health_score")
+
+    financials = []
+    if gasto: financials.append(f"gasto mensual ~${gasto:,} MXN")
+    if ahorro: financials.append(f"ahorro acumulado ~${ahorro:,} MXN")
+    if inversion: financials.append(f"inversiones ~${inversion:,} MXN")
+    if credito: financials.append(f"crédito utilizado ~${credito:,} MXN")
+    if health_score: financials.append(f"health score {health_score}/100")
+
     lines = [
-        "[PERSONALIZACIÓN]",
-        f"  Segmento conductual:    {cond.get('name', 'desconocido')}",
+        "[PERFIL DEL CLIENTE — usa estos datos para personalizar tu respuesta]",
+        f"  Segmento conductual:    {cond.get('name', 'desconocido')} — {cond.get('description', '')}",
         f"  Segmento transaccional: {trans.get('name', 'desconocido')}",
-        f"    · top categorías: {', '.join(trans.get('top_spending_categories') or []) or '—'}",
+        f"    · principales gastos: {', '.join(trans.get('top_spending_categories') or []) or '—'}",
         f"  Salud financiera:       {salud.get('name', 'desconocido')}",
-        f"    · estrategia de oferta: {salud.get('offer_strategy') or '—'}",
-        f"  Sugerencias candidatas: {', '.join(suggestions) or '—'}",
+        f"    · estrategia recomendada: {salud.get('offer_strategy') or '—'}",
+    ]
+
+    if financials:
+        lines.append(f"  Datos financieros:      {' | '.join(financials)}")
+
+    lines += [
+        f"  Próximos productos a ofrecer (en orden de prioridad): {', '.join(suggestions) or '—'}",
         "",
-        "Reglas:",
-        "  1. Adapta tono y vocabulario al segmento conductual.",
-        "  2. Si introduces una sugerencia candidata, hazlo SOLO cuando sea orgánico al "
-        "tema y nunca más de UNA por turno.",
-        "  3. Respeta los safety rails por salud financiera (abajo).",
+        "[INSTRUCCIONES DE PERSONALIZACIÓN — MUY IMPORTANTE]",
+        "  1. Tu tono y vocabulario DEBEN reflejar el segmento conductual del cliente.",
+        "     Un inversor profesional recibe lenguaje técnico; un cliente en estrés recibe empatía.",
+        "  2. Si los datos financieros son relevantes al tema, ÚSALOS en tu respuesta.",
+        "     Ej: 'Con tu ahorro actual de $X, podrías...' o 'Tu patrón de gasto en Y sugiere...'",
+        "  3. Sé PROACTIVO: al final de tu respuesta, agrega siempre una sugerencia o pregunta",
+        "     que lleve la conversación hacia el siguiente paso útil para ESTE usuario.",
+        "  4. Introduce UNA sugerencia candidata si encaja orgánicamente. No forces la venta.",
     ]
     if rails:
-        lines += ["", f"[SAFETY RAILS] {rails}"]
+        lines += ["", f"[SAFETY RAILS — obligatorio] {rails}"]
     return "\n".join(lines)
 
 
@@ -207,6 +262,7 @@ async def plan_research(state: Dict[str, Any]) -> Dict[str, Any]:
     ficha = state.get("ficha_cliente")
     profile = state.get("profile") or {}
     user_text = state.get("input_text") or ""
+    conversation_context = state.get("conversation_context") or ""
 
     persona_prompt = _pick_persona_prompt(ficha)
     personalization = _personalization_block(ficha)
@@ -220,10 +276,15 @@ async def plan_research(state: Dict[str, Any]) -> Dict[str, Any]:
         '{"queries": ["..."], "depth": "shallow|deep"}.'
     )
 
+    history_block = (
+        f"Historial reciente de la conversación:\n{conversation_context}\n\n"
+        if conversation_context else ""
+    )
+
     llm = get_llm(role="planner")
     raw = await llm.acomplete(
         system=system,
-        user=f"Mensaje del usuario:\n{user_text}\n\nIntent detectado: {profile.get('intent')}",
+        user=f"{history_block}Mensaje actual del usuario:\n{user_text}\n\nIntent detectado: {profile.get('intent')}",
         temperature=0.2,
         max_tokens=300,
         response_format={"type": "json_object"},
@@ -270,6 +331,7 @@ async def draft_research_response(state: Dict[str, Any]) -> Dict[str, Any]:
     profile = state.get("profile") or {}
     contexts = state.get("research_context") or []
     user_text = state.get("input_text") or ""
+    conversation_context = state.get("conversation_context") or ""
 
     persona_prompt = _pick_persona_prompt(ficha)
     personalization = _personalization_block(ficha)
@@ -288,14 +350,27 @@ async def draft_research_response(state: Dict[str, Any]) -> Dict[str, Any]:
         f"{persona_prompt}\n\n"
         f"{personalization}"
         f"{suggestion_clause}\n"
-        "Reglas adicionales:\n"
-        "  - Si no tienes información, dilo claramente y propón siguiente paso.\n"
-        "  - Cita los datos específicos del usuario sólo si vienen en la ficha.\n"
-        "  - Tu respuesta debe ser breve y accionable (máx 4-6 oraciones).\n"
+        "Reglas de respuesta:\n"
+        "  - OBLIGATORIO: tu respuesta debe NOTARSE diferente según el perfil del cliente.\n"
+        "    Un inversor debe recibir opciones concretas de rendimiento.\n"
+        "    Un cliente en estrés debe sentir apoyo real, sin ventas.\n"
+        "    Un joven digital debe sentir que Havi conoce sus hábitos digitales.\n"
+        "  - Usa el historial de conversación para dar continuidad entre turnos.\n"
+        "  - Si la ficha tiene datos financieros (gasto, ahorro, crédito), ÚSALOS "
+        "    para hacer la respuesta específica, no genérica.\n"
+        "  - Termina SIEMPRE con una pregunta o acción concreta para este usuario.\n"
+        "  - Máx 4-6 oraciones. Directo y accionable.\n"
+    )
+
+    history_block = (
+        f"Historial reciente de la conversación (para contexto — NO lo repitas):\n"
+        f"{conversation_context}\n\n"
+        if conversation_context else ""
     )
 
     user_block = (
-        f"Mensaje del usuario:\n{user_text}\n\n"
+        f"{history_block}"
+        f"Mensaje actual del usuario:\n{user_text}\n\n"
         f"Contexto recuperado (RAG):\n{_format_contexts(contexts)}\n\n"
         f"Perfil dinámico: intent={profile.get('intent')}, "
         f"sentiment={profile.get('sentiment')}, urgency={profile.get('urgency')}.\n\n"
@@ -317,7 +392,7 @@ async def draft_research_response(state: Dict[str, Any]) -> Dict[str, Any]:
     )
 
     return {
-        "draft_response": (response_text or "").strip(),
+        "draft_response_text": (response_text or "").strip(),
         "draft_meta": {
             "persona_key": ((ficha or {}).get("segmentos", {}) or {}).get("conductual", {}).get("name"),
             "suggestion_offered": suggestion_to_offer,

@@ -74,14 +74,14 @@ async def guardrail_slm_node(state: Dict[str, Any]) -> Dict[str, Any]:
             requires_step_up_auth = True
 
     out: Dict[str, Any] = {
-        "guardrail": {
+        "guardrail_result": {
             "blocked": blocked,
             "reason": reason,
             "requires_step_up_auth": requires_step_up_auth,
         }
     }
     if blocked and canned_response:
-        out["draft_response"] = canned_response
+        out["draft_response_text"] = canned_response
         out["draft_meta"] = {"source": "guardrail", "reason": reason}
     logger.info("guardrail: blocked=%s reason=%s step_up=%s",
                 blocked, reason, requires_step_up_auth)

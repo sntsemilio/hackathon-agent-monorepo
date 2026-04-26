@@ -26,12 +26,84 @@ export function useSSE() {
   const [profile, setProfile] = useState<ConversationalProfile | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  // Used to cancel in-flight greetings when the user switches again rapidly
+  const greetGenRef = useRef(0)
 
   const clearMessages = useCallback(() => {
     setMessages([])
     setCurrentTrace([])
     setFicha(null)
     setProfile(null)
+  }, [])
+
+  /**
+   * Clears the chat and animates a personalized greeting from Havi with a
+   * typewriter effect. If `insight` is provided, it appears as a second
+   * proactive message ~1 s after the greeting finishes.
+   * Safe to call rapidly — only the last call "wins".
+   */
+  const greetUser = useCallback(async (greeting: string, insight?: string) => {
+    // Cancel any in-progress API call
+    if (abortRef.current) abortRef.current.abort()
+
+    // Reset all state
+    setMessages([])
+    setCurrentTrace([])
+    setFicha(null)
+    setProfile(null)
+
+    if (!greeting) return
+
+    // Bump generation counter so a previous greeting loop will bail out
+    const gen = ++greetGenRef.current
+
+    // Let React flush the clearMessages state before we start writing
+    await new Promise(r => setTimeout(r, 60))
+    if (greetGenRef.current !== gen) return
+
+    // ── Greeting typewriter ─────────────────────────────────────────────
+    const greetMsg: Message = {
+      id: `greeting-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    }
+    setMessages([greetMsg])
+
+    for (let i = 1; i <= greeting.length; i++) {
+      if (greetGenRef.current !== gen) return
+      await new Promise(r => setTimeout(r, 14))
+      setMessages([{ ...greetMsg, content: greeting.slice(0, i) }])
+    }
+
+    // ── Proactive insight typewriter (aparece ~1 s después) ─────────────
+    if (!insight) return
+
+    // Pausa antes del insight — simula que Havi "analizó" la cuenta
+    await new Promise(r => setTimeout(r, 950))
+    if (greetGenRef.current !== gen) return
+
+    const insightMsg: Message = {
+      id: `insight-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      variant: 'insight',
+    }
+    setMessages(prev => [...prev, insightMsg])
+
+    for (let i = 1; i <= insight.length; i++) {
+      if (greetGenRef.current !== gen) return
+      await new Promise(r => setTimeout(r, 16))
+      setMessages(prev => {
+        const updated = [...prev]
+        const last = updated[updated.length - 1]
+        if (last?.id === insightMsg.id) {
+          updated[updated.length - 1] = { ...last, content: insight.slice(0, i) }
+        }
+        return updated
+      })
+    }
   }, [])
 
   const sendMessage = useCallback(async (message: string, userId: string | null) => {
@@ -46,8 +118,12 @@ export function useSSE() {
     }
     setMessages(prev => [...prev, userMsg])
 
-    const body: Record<string, any> = { message }
-    if (userId) body.user_id = userId
+    const body: Record<string, any> = {
+      message,
+      user_id: userId || 'anonymous',
+      session_id: `session-${Date.now()}`,
+      personalization_enabled: !!userId,
+    }
 
     abortRef.current = new AbortController()
 
@@ -101,8 +177,8 @@ export function useSSE() {
                   setFicha(data.metadata.ficha_cliente)
                 }
 
-                // Extract profile from profiler_slm trace
-                if (data.node === 'profiler_slm' && data.metadata?.profile) {
+                // Extract profile from profiler trace (backend sends 'profiler', not 'profiler_slm')
+                if ((data.node === 'profiler' || data.node === 'profiler_slm') && data.metadata?.profile) {
                   setProfile(data.metadata.profile)
                 }
 
@@ -172,5 +248,5 @@ export function useSSE() {
     }
   }, [])
 
-  return { messages, currentTrace, ficha, profile, isStreaming, sendMessage, clearMessages }
+  return { messages, currentTrace, ficha, profile, isStreaming, sendMessage, clearMessages, greetUser }
 }

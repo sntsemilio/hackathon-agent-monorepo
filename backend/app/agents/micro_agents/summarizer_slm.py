@@ -58,9 +58,9 @@ async def summarizer_slm_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Toma el draft y arma la respuesta final + componentes UI opcionales.
     """
-    draft = (state.get("draft_response") or "").strip()
+    draft = (state.get("draft_response_text") or "").strip()
     draft_meta = state.get("draft_meta") or {}
-    guardrail = state.get("guardrail") or {}
+    guardrail = state.get("guardrail_result") or {}
     profile = state.get("profile") or {}
     ficha = state.get("ficha_cliente") or {}
 

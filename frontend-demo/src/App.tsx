@@ -8,6 +8,34 @@ import { ObsDashboard } from './components/obs/ObsDashboard'
 import LoginScreen from './components/login/LoginScreen'
 import { DemoUser, Ficha } from './types'
 
+// ---------------------------------------------------------------------------
+// Saludos personalizados — Havi conoce a cada usuario desde el primer segundo
+// ---------------------------------------------------------------------------
+const GREETINGS: Record<string, string> = {
+  'USR-00001': 'Hola Carla 👋 Detecté actividad inusual en tu cuenta recientemente. Puedes consultar tu saldo y movimientos normalmente. Para transferencias, solo escribe "verificar identidad" y te autenticamos en segundos. ¿Cómo te ayudo?',
+  'USR-00042': 'Hola Javier 👋 Tu portafolio creció 1.8% este mes — tienes $250,000 MXN generando un GAT real de 11.4%. ¿Exploramos cómo optimizarlo o diversificarlo?',
+  'USR-00108': '¡Hey Ana! 🙌 Llevas $342.80 MXN de cashback acumulado y vas muy bien para cerrar el mes en ~$95. Tus suscripciones de streaming son las que más cashback generan. ¿Qué necesitas hoy?',
+  'USR-00205': 'Hola Roberto 👋 Todo en orden — tienes $18,200 MXN disponibles y tus servicios del mes están al corriente. ¿En qué te puedo ayudar?',
+  'USR-00310': 'Hola María 👋 Estoy aquí para ayudarte, sin presión. Veo que tienes un pago mínimo de $660 MXN próximo. ¿Quieres que revisemos opciones de reestructuración juntos?',
+  'USR-00415': '¡Hola Carlos! 👋 Bienvenido a Hey Banco. Ya tienes $3,500 MXN ahorrados — llevas el 35% de tu meta de $10,000. ¿Qué quieres explorar hoy?',
+  'USR-00520': 'Hola Daniela 👋 La nómina quincenal de tus 15 empleados está programada. Tienes $89,400 MXN disponibles en cuenta empresarial. ¿Qué necesitas gestionar?',
+  'USR-00630': 'Hola Luis 👋 Tu score en buró está en ascenso — tus pagos puntuales están teniendo efecto 📈 Tienes $15,000 MXN ahorrados, ¡vas muy bien! ¿Cómo te ayudo hoy?',
+}
+
+// ---------------------------------------------------------------------------
+// Insights proactivos — Havi ya analizó la cuenta antes de que preguntes
+// ---------------------------------------------------------------------------
+const PROACTIVE_INSIGHTS: Record<string, string> = {
+  'USR-00001': '🔒 Detecté un acceso desde un dispositivo nuevo el lunes a las 11:47 pm (Ciudad de México). ¿Fuiste tú? Si no lo reconoces, puedo bloquear el acceso ahora mismo.',
+  'USR-00042': '💡 Oportunidad detectada: tienes $45,000 MXN en ahorro generando ~4% anual, mientras tu portafolio de inversión rinde 14.2%. Mover una parte podría generarte ~$4,500 MXN más al año.',
+  'USR-00108': '✨ ¡Casi llegas al nivel Gold! Si gastas $280 MXN más en plataformas digitales este mes, tu cashback sube de 1% a 1.5% en todas tus compras. Te falta muy poco.',
+  'USR-00205': '💳 Llevas 8 meses sin usar tu línea de crédito disponible ($7,000 MXN). Usarla y pagarla puntualmente puede aumentar tu límite hasta $12,000 MXN. ¿Quieres saber cómo?',
+  'USR-00310': '⚠️ Patrón detectado: tus gastos en farmacia subieron 38% vs. el mes pasado ($380 vs $275 MXN). También tu renta representa el 58% de tus ingresos estimados este ciclo. ¿Te ayudo a revisar el flujo?',
+  'USR-00415': '🎯 Llevas 3 meses con tu cuenta Hey y aún no has activado el ahorro automático. Con solo $200 MXN quincenales llegarías a tu meta de $10,000 en exactamente 10 meses. ¿Lo activamos?',
+  'USR-00520': '📊 La nómina del próximo miércoles ($87,500 MXN) será tu mayor egreso del mes. Con tu flujo actual tienes cobertura, pero si adelantas el cobro de la factura 483 ($65,000 pendiente) quedas con holgura. ¿Programo un recordatorio?',
+  'USR-00630': '📈 Buenas noticias: tu score en buró subió ~15 puntos este mes gracias a tus pagos puntuales. Si mantienes este ritmo 3 meses más, podrías calificar para un aumento de límite de crédito automático.',
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedUserIdx, setSelectedUserIdx] = useState(0)
@@ -15,7 +43,7 @@ export default function App() {
   const [activeView, setActiveView] = useState<'chat' | 'obs'>('chat')
   const [mockFicha, setMockFicha] = useState<Ficha | null>(null)
 
-  const { messages, currentTrace, ficha: sseficha, profile, isStreaming, sendMessage, clearMessages } = useSSE()
+  const { messages, currentTrace, ficha: sseficha, profile, isStreaming, sendMessage, clearMessages, greetUser } = useSSE()
   const { users } = useUsers()
 
   const selectedUser = useMemo(
@@ -30,6 +58,17 @@ export default function App() {
     }
   }, [selectedUser])
 
+  // Saludo inicial al montar la app (primer usuario cargado)
+  useEffect(() => {
+    if (isAuthenticated && selectedUser) {
+      greetUser(
+        GREETINGS[selectedUser.user_id] || '',
+        PROACTIVE_INSIGHTS[selectedUser.user_id]
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
+
   // Prioriza la ficha real del SSE, si no está disponible usa la mock
   const ficha = sseficha || mockFicha
 
@@ -39,8 +78,15 @@ export default function App() {
 
   const handleUserChange = (userId: string) => {
     const idx = users?.findIndex((u) => u.id === userId) ?? 0
-    setSelectedUserIdx(idx)
-    clearMessages()
+    const safeIdx = idx < 0 ? 0 : idx
+    const targetUser = users?.[safeIdx]
+    setSelectedUserIdx(safeIdx)
+    // Set mock ficha immediately so the sidebar never flashes "cargando"
+    if (targetUser?.ficha_mock) {
+      setMockFicha(targetUser.ficha_mock)
+    }
+    // greetUser clears messages internally and animates greeting + proactive insight
+    greetUser(GREETINGS[userId] || '', PROACTIVE_INSIGHTS[userId])
   }
 
   if (!isAuthenticated) {

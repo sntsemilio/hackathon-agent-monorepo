@@ -31,12 +31,12 @@ class GlobalState(TypedDict, total=False):
 
     # Buffers de los nodos
     messages: List[Dict[str, Any]]
-    guardrail: Optional[Dict[str, Any]]
+    guardrail_result: Optional[Dict[str, Any]]
     profile: Optional[Dict[str, Any]]
     research_plan: Optional[Dict[str, Any]]
     research_context: Optional[List[Dict[str, Any]]]
     tool_results: Optional[List[Dict[str, Any]]]
-    draft_response: Optional[str]
+    draft_response_text: Optional[str]
     draft_meta: Optional[Dict[str, Any]]
     final_response: Optional[str]
 
@@ -60,12 +60,12 @@ def empty_state() -> GlobalState:
         metadata={},
         ficha_cliente=None,
         messages=[],
-        guardrail=None,
+        guardrail_result=None,
         profile=None,
         research_plan=None,
         research_context=None,
         tool_results=None,
-        draft_response=None,
+        draft_response_text=None,
         draft_meta=None,
         final_response=None,
         node_traces=None,

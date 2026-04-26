@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, Fragment } from 'react'
 import { ChatMessage, DemoUser } from '../../types'
 
 interface ChatPanelProps {
@@ -105,30 +105,123 @@ export function ChatPanel({
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px',
                       display: 'flex', flexDirection: 'column', gap: '12px' }}
              ref={scrollRef}>
-          {messages.map((msg: ChatMessage, i: number) => (
-            <div key={i} className="msg-in" style={{
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
-            }}>
-              <div style={{
-                maxWidth: msg.role === 'user' ? '70%' : '80%',
-                padding: '12px 16px', borderRadius: msg.role === 'user'
-                  ? '18px 18px 4px 18px'
-                  : '4px 18px 18px 18px',
-                fontSize: '14px', lineHeight: 1.6, fontFamily: 'Inter, sans-serif',
-                background: msg.role === 'user'
-                  ? 'linear-gradient(135deg, #00C389, #00A074)'
-                  : '#1C2128',
-                color: msg.role === 'user' ? '#0D1117' : '#E2E8F0',
-                border: msg.role === 'user' ? 'none' : '1px solid #21262D',
-                boxShadow: msg.role === 'user'
-                  ? '0 2px 10px rgba(0,195,137,0.25)'
-                  : '0 2px 8px rgba(0,0,0,0.2)'
-              }}>
-                {msg.content}
-              </div>
-            </div>
-          ))}
+          {messages.map((msg: ChatMessage, i: number) => {
+            const isLastMsg = i === messages.length - 1
+            // Rotate chips so different suggestions appear as the conversation progresses
+            const assistantCount = messages.slice(0, i + 1).filter(m => m.role === 'assistant').length
+            const startIdx = ((assistantCount - 1) * 2) % Math.max(sampleQuestions.length, 1)
+            const chips = sampleQuestions.length > 0
+              ? [
+                  sampleQuestions[startIdx % sampleQuestions.length],
+                  sampleQuestions[(startIdx + 1) % sampleQuestions.length],
+                ].filter((q, idx, arr) => q && arr.indexOf(q) === idx)
+              : []
+            const showChips = isLastMsg && msg.role === 'assistant' && !isStreaming && chips.length > 0
+
+            return (
+              <Fragment key={i}>
+                <div className="msg-in" style={{
+                  display: 'flex',
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
+                }}>
+                  {msg.variant === 'insight' ? (
+                    /* ── Insight proactivo — estilo diferenciado ── */
+                    <div style={{
+                      maxWidth: '85%',
+                      borderRadius: '4px 18px 18px 18px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(0,195,137,0.35)',
+                      boxShadow: '0 2px 12px rgba(0,195,137,0.12)',
+                    }}>
+                      {/* Header del insight */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '7px 14px',
+                        background: 'rgba(0,195,137,0.12)',
+                        borderBottom: '1px solid rgba(0,195,137,0.2)',
+                      }}>
+                        <span style={{ fontSize: '10px', letterSpacing: '0.06em',
+                                       fontWeight: 700, color: '#00C389',
+                                       textTransform: 'uppercase', fontFamily: 'Inter, sans-serif' }}>
+                          Havi detectó
+                        </span>
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%',
+                                       background: '#00C389', display: 'inline-block',
+                                       animation: 'dotPulse 2s ease-in-out infinite' }} />
+                      </div>
+                      {/* Cuerpo */}
+                      <div style={{
+                        padding: '11px 14px',
+                        background: '#161B22',
+                        fontSize: '13.5px', lineHeight: 1.6,
+                        color: '#C9D1D9', fontFamily: 'Inter, sans-serif',
+                      }}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── Mensaje normal ── */
+                    <div style={{
+                      maxWidth: msg.role === 'user' ? '70%' : '80%',
+                      padding: '12px 16px', borderRadius: msg.role === 'user'
+                        ? '18px 18px 4px 18px'
+                        : '4px 18px 18px 18px',
+                      fontSize: '14px', lineHeight: 1.6, fontFamily: 'Inter, sans-serif',
+                      background: msg.role === 'user'
+                        ? 'linear-gradient(135deg, #00C389, #00A074)'
+                        : '#1C2128',
+                      color: msg.role === 'user' ? '#0D1117' : '#E2E8F0',
+                      border: msg.role === 'user' ? 'none' : '1px solid #21262D',
+                      boxShadow: msg.role === 'user'
+                        ? '0 2px 10px rgba(0,195,137,0.25)'
+                        : '0 2px 8px rgba(0,0,0,0.2)'
+                    }}>
+                      {msg.content}
+                    </div>
+                  )}
+                </div>
+
+                {/* Chips de sugerencias — solo tras el último mensaje de Havi */}
+                {showChips && (
+                  <div style={{
+                    display: 'flex', gap: '8px', flexWrap: 'wrap',
+                    paddingLeft: '4px', marginTop: '-4px'
+                  }}>
+                    {chips.map((q: string, ci: number) => (
+                      <button
+                        key={ci}
+                        onClick={() => onSendMessage(q)}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid #30363D',
+                          borderRadius: '20px',
+                          padding: '6px 14px',
+                          color: '#8B949E',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 160ms',
+                          fontFamily: 'Inter, sans-serif',
+                          lineHeight: 1.4,
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = '#00C389'
+                          e.currentTarget.style.color = '#00C389'
+                          e.currentTarget.style.background = 'rgba(0,195,137,0.06)'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = '#30363D'
+                          e.currentTarget.style.color = '#8B949E'
+                          e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Fragment>
+            )
+          })}
 
           {/* Typing indicator */}
           {isStreaming && (
