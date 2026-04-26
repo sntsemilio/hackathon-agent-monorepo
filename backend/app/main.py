@@ -14,6 +14,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
+from app.api.routes import router as chat_router, lifespan
+from app.api.admin import router as admin_router
+from app.api.users import router as users_router
 from app.api.routes import router as chat_router, admin_router, lifespan
 from app.api.ws import router as ws_router
 from app.core.config import get_settings
@@ -59,6 +62,7 @@ def create_app() -> FastAPI:
 
     app.include_router(chat_router)
     app.include_router(admin_router)
+    app.include_router(users_router)
     app.include_router(ws_router)
 
     @app.get("/api/health")

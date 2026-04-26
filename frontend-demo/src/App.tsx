@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, MessageCircle, BarChart3 } from 'lucide-react'
-import { DEMO_USERS } from './lib/users'
 import { useSSE } from './hooks/useSSE'
+import { useUsers } from './hooks/useUsers'
 import { ChatPanel } from './components/chat/ChatPanel'
 import { FichaSidebar } from './components/ficha/FichaSidebar'
 import { TracePanel } from './components/trace/TracePanel'
@@ -16,9 +16,10 @@ export default function App() {
   const [selectedUserIdx, setSelectedUserIdx] = useState(0)
   const [personalized, setPersonalized] = useState(true)
   const [activeView, setActiveView] = useState<'chat' | 'obs'>('chat')
-  const { messages, currentTrace, ficha, isStreaming, sendMessage, clearMessages } = useSSE()
+  const { messages, currentTrace, ficha, profile, isStreaming, sendMessage, clearMessages } = useSSE()
+  const { users } = useUsers()
 
-  const currentUser = DEMO_USERS[selectedUserIdx]
+  const currentUser = users[selectedUserIdx]
 
   const handleSend = (message: string) => {
     sendMessage(message, personalized ? currentUser.user_id : null)
@@ -94,7 +95,7 @@ export default function App() {
               <div className="w-px h-6 bg-[#21262D]" />
             </>
           )}
-          {activeView === 'chat' && <UserPicker users={DEMO_USERS} selectedIdx={selectedUserIdx} onChange={handleUserChange} />}
+          {activeView === 'chat' && <UserPicker users={users} selectedIdx={selectedUserIdx} onChange={handleUserChange} />}
         </div>
       </header>
 
@@ -111,7 +112,7 @@ export default function App() {
               className="flex flex-1 min-h-0"
             >
               {/* Trace Panel */}
-              <TracePanel trace={currentTrace} isStreaming={isStreaming} />
+              <TracePanel trace={currentTrace} isStreaming={isStreaming} profile={profile} />
 
               {/* Chat Panel */}
               <main className="flex-1 min-w-0">
