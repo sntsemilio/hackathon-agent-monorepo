@@ -1,7 +1,7 @@
 FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY backend/pyproject.toml ./
+COPY README.md /README.md
 COPY backend/app ./app
 
 RUN uv pip install --system --no-cache -e .

@@ -17,11 +17,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/chat': {
-        target: 'http://localhost:8080',
+        target: process.env.BACKEND_API_URL || 'http://localhost:8080',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:8080',
+        target: (process.env.BACKEND_API_URL || 'http://localhost:8080').replace('http', 'ws'),
         ws: true,
       },
     },
